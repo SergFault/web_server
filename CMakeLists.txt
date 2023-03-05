@@ -4,6 +4,6 @@ project(web_server)
 
 set(EXEC_NAME server)
 
-add_executable(${EXEC_NAME} main.cpp network/SocketHolder.cpp)
+add_executable(${EXEC_NAME} main.cpp network/SocketHolder.cpp network/Server.cpp parsing/CfgCtx.cpp)
 
 target_compile_options(server PUBLIC "-std=c++98")

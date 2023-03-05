@@ -21,21 +21,21 @@ class SocketHolder
 {
 public:
     SocketHolder();
+    explicit SocketHolder(int fd);
+    SocketHolder(const SocketHolder& other);
     SocketHolder(int domain, int type, int protocol);
     ~SocketHolder();
     void bind(const struct sockaddr_in *addr);
     void listen();
-    int accept();
+    SocketHolder accept();
     void send(const std::string &);
     std::string read();
-    explicit SocketHolder(int fd);
-    int moveFd();
-
+    SocketHolder& operator=(const SocketHolder& other);
+    void setNonBlocking();
+    int getFd();
 
 private:
-    explicit SocketHolder(SocketHolder &other);
-    SocketHolder &operator=(const SocketHolder &other);
-
+    int *m_obj_counter;
     int m_file_descriptor;
 };
 
