@@ -17,23 +17,38 @@ namespace ft
         return str.substr(begin, end - begin);
     }
 
+    void to_lower(std::string& str)
+    {
+        for (size_t i = 0; i < str.size(); i++)
+            str[i] = std::tolower(str[i]);
+    }
+
     HTTPRequest::HTTPRequest(const std::string& string)
+    :
+        m_method(""),
+        m_uri(""),
+        m_version(""),
+        m_host("localhost"),
+        m_port("80"),
+        m_content_length(""),
+        m_content_type(""),
+        m_keep_alive(true),
+        m_chunked(false)
     {
         std::istringstream ist(string); 
         std::string line;
-        // size_t  pos1, pos2;
 
         std::getline(ist, line);
         std::istringstream iline(line);
 
-        std::getline(iline, _method, ' ');
-        std::cout << "[" << _method << "]" << std::endl; //debug;
+        std::getline(iline, m_method, ' ');
+        std::cout << "[" << m_method << "]" << std::endl; //debug;
         
-        std::getline(iline, _uri, ' ');
-        std::cout << "[" << _uri << "]" << std::endl; //debug;
+        std::getline(iline, m_uri, ' ');
+        std::cout << "[" << m_uri << "]" << std::endl; //debug;
         
-        std::getline(iline, _version, '\r');
-        std::cout << "[" << _version << "]" << std::endl; //debug;
+        std::getline(iline, m_version, '\r');
+        std::cout << "[" << m_version << "]" << std::endl; //debug;
 
         size_t  headers_begin = string.find('\n') + 1;
         size_t  body = string.find("\r\n\r\n", 0);
@@ -50,43 +65,48 @@ namespace ft
 
             std::getline(ihead, line, ':');
 
-            if (line == "Host")
+            to_lower(line);
+
+            std::cout << "{" << line << "}" << std::endl; //debug
+
+            if (line == "host")
             {
-                std::getline(ihead, _host, ':');
-                _host = trim_spaces(_host);
-                std::cout << "host: [" << _host << "]" << std::endl; //debug;
-                std::getline(ihead, _port);
-                _port = trim_spaces(_port);
-                std::cout << "port: [" << _port << "]" << std::endl; //debug
+                std::getline(ihead, m_host, ':');
+                m_host = trim_spaces(m_host);
+                std::cout << "host: [" << m_host << "]" << std::endl; //debug;
+                std::getline(ihead, m_port);
+                m_port = trim_spaces(m_port);
+                std::cout << "port: [" << m_port << "]" << std::endl; //debug
+            }
+            else if (line == "content-length")
+            {
+                std::getline(ihead, m_content_length, ':');
+                m_content_length = trim_spaces(m_content_length);
+                std::cout << "content-length: [" << m_content_length << "]" << std::endl; //debug
+            }
+            else if (line == "content-type")
+            {
+                std::getline(ihead, m_content_type, ':');
+                m_content_type = trim_spaces(m_content_type);
+                std::cout << "content-type: [" << m_content_type << "]" << std::endl; //debug
+            }
+            else if (line == "connection")
+            {
+                std::string type;
+                std::getline(ihead, type, ':');
+                type = trim_spaces(type);
+                if (type == "closed")
+                    m_keep_alive = false;
             }
         }
 
         std::cout << "[" << headers << "]" << std::endl; //debug;
-
-        // pos1 = string.find(" ", 0);
-        // _method = string.substr(0, pos1);
-        // std::cout << "[" << _method << "]" << std::endl; //debug;
-        // pos1 = string.find_first_not_of(" ", pos1);
-        // pos2 = string.find(" ", pos1);
-        // _uri = string.substr(pos1, pos2 - pos1);
-        // pos1 = string.find_first_not_of(" ", pos2);
-        // pos2 = string.find("\r\n", pos1);
-        // _version = string.substr(pos1, pos2 - pos1);
-        // std::cout << "[" << _uri << "]" << std::endl; //debug;
-        // std::cout << "[" << _version << "]" << std::endl; //debug;
-
-        // pos1 = string.find("Host: ", pos2);
-        // if (pos1 == std::string::npos)
-        // {
-        //     _host = "localhost";
-        //     _port = "80";
-        // }
     }
 }
 
 int main()
 {
-    std::string str = "POST url HTTP/1.1\r\nHost: 192.168.0.1\r\nContent-Length:66\r\n\r\nbody";
+    std::string str = "POST url HTTP/1.1\r\nHost: 192.168.0.1\r\nContent-Length: 66\r\nContent-Type: multipart/form-data\r\n\r\nbody";
 
     ft::HTTPRequest req(str);
 
