@@ -101,12 +101,65 @@ namespace ft
         }
 
         std::cout << "[" << headers << "]" << std::endl; //debug;
+
+        parse_uri(m_uri);
+    }
+
+    int HTTPRequest::parse_uri(const std::string& uri)
+    {
+        std::string tmp;
+        std::string key, value;
+        size_t pos;
+
+        if ((pos = uri.find("//")) != std::string::npos)
+            m_st_uri.scheme = uri.substr(0, pos);
+        
+        if (m_st_uri.scheme != "http:" && m_st_uri.scheme != "")
+            return -1; // unsupported scheme
+
+        tmp = uri.substr(pos + 2, uri.size() - pos - 2);
+
+        std::istringstream istr(tmp);
+        
+        std::getline(istr, tmp, '#');
+        std::getline(istr, m_st_uri.fragment);
+
+        std::istringstream istr2(tmp);
+
+        std::getline(istr2, tmp, '?');
+
+        while (std::getline(istr2, key, '='))
+        {
+            std::getline(istr2, value, '&');
+            m_st_uri.query.insert(std::make_pair(key, value));
+        }
+
+        std::istringstream istr3(tmp);
+
+        std::getline(istr3, tmp, '/');
+        std::getline(istr3, m_st_uri.path);
+
+        std::istringstream istr4(tmp);
+        std::getline(istr4, m_st_uri.hostname, ':');
+        std::getline(istr4, m_st_uri.port);
+
+        if (m_st_uri.port == "")
+            m_st_uri.port = "80";
+
+        std::cout << "scheme: [" << m_st_uri.scheme << "]" << std::endl; //debug
+        std::cout << "hostname: [" << m_st_uri.hostname << "]" << std::endl; //debug
+        std::cout << "port: [" << m_st_uri.port << "]" << std::endl; //debug
+        std::cout << "path: [" << m_st_uri.path << "]" << std::endl; //debug
+        for (auto it = m_st_uri.query.begin(); it != m_st_uri.query.end(); it++)
+            std::cout << "query: [" << it->first << ":" << it->second << "]" << std::endl; //debug
+        std::cout << "fragment: [" << m_st_uri.fragment << "]" << std::endl; //debug
+        return 0;
     }
 }
 
 int main()
 {
-    std::string str = "POST url HTTP/1.1\r\nHost: 192.168.0.1\r\nContent-Length: 66\r\nContent-Type: multipart/form-data\r\n\r\nbody";
+    std::string str = "POST http://www.example.com:55/upload/?a=1&b=2#frag HTTP/1.1\r\nHost: 192.168.0.1\r\nContent-Length: 66\r\nContent-Type: multipart/form-data\r\n\r\nbody";
 
     ft::HTTPRequest req(str);
 
