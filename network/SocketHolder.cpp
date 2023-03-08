@@ -83,7 +83,7 @@ SocketHolder::SocketHolder(int domain, int type, int protocol)
 
      int opt = 1;
      if ((setsockopt(m_file_descriptor, SOL_SOCKET,
-                   SO_REUSEADDR | SO_REUSEPORT, &opt,
+                   SO_REUSEADDR, &opt,
                    sizeof(opt))) == -1)
                    {
                         shutdown(m_file_descriptor, SHUT_RDWR);
