@@ -3,6 +3,7 @@
 #include "../parsing/CfgCtx.hpp"
 #include "SocketHolder.h"
 
+#include <sys/select.h>
 #include <vector>
 
 namespace ft{
@@ -13,10 +14,12 @@ public:
     void Run();
     Server(const std::vector<CfgCtx>& cfgCtxs);
 private:
+    void initReadWriteSets(fd_set &read, fd_set &write);
     std::vector<CfgCtx> m_configs;
-    std::vector<SocketHolder> m_sockets;
+    std::vector<SocketHolder> m_listenSockets;
+    std::vector<SocketHolder> m_rwSockets;
 
     void initialize();
-
+    ssize_t m_maxSelectFd;
 };
 } //namespace ft

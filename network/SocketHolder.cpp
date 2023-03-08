@@ -1,4 +1,6 @@
 #include "SocketHolder.h"
+#include <arpa/inet.h>
+#include <bitset>
 #include <fcntl.h>
 
 namespace ft
@@ -7,11 +9,12 @@ namespace ft
 
 SocketHolder::SocketHolder(): m_file_descriptor(-1)
 {
-
+    memset(&m_hostSockAdd, 0, sizeof(m_hostSockAdd));
 }
 
 SocketHolder::SocketHolder(const SocketHolder &other)
 {
+    memset(&m_hostSockAdd, 0, sizeof(m_hostSockAdd));
     if (other.m_file_descriptor != -1)
     {
         m_obj_counter = other.m_obj_counter;
@@ -27,6 +30,8 @@ SocketHolder& SocketHolder::operator=(const SocketHolder& other)
     {
         return *this;
     }
+
+    m_hostSockAdd = other.m_hostSockAdd;
     if (other.m_file_descriptor != -1)
     {
         m_obj_counter = other.m_obj_counter;
@@ -38,6 +43,7 @@ SocketHolder& SocketHolder::operator=(const SocketHolder& other)
 
 SocketHolder::SocketHolder(int fd): m_file_descriptor(fd)
 {
+    memset(&m_hostSockAdd, 0, sizeof(m_hostSockAdd));
     if (fd != -1)
     {
         m_obj_counter = new int(0);
@@ -68,6 +74,7 @@ void SocketHolder::setNonBlocking()
 SocketHolder::SocketHolder(int domain, int type, int protocol)
 {
     m_file_descriptor = ::socket(domain, type,  protocol);
+    memset(&m_hostSockAdd, 0, sizeof(m_hostSockAdd));
 
     if (m_file_descriptor == -1)
     {
@@ -125,8 +132,10 @@ std::string SocketHolder::read()
 
     std::stringstream ss;
 
+    
 
     res =::read(m_file_descriptor, &buffer, 1023);
+
 
     // while ((res =::read(m_file_descriptor, &buffer, 1023)) == 1023)
     // {
@@ -151,7 +160,24 @@ std::string SocketHolder::read()
 
 SocketHolder SocketHolder::accept()
 {
-    return SocketHolder(::accept(m_file_descriptor, NULL, NULL));
+    int res = ::accept(m_file_descriptor, &m_hostSockAdd, &m_hostSockAddrLen);
+
+    // std::cout << res << std::endl;
+
+    SocketHolder sock(res);
+
+    /* todo debug */
+    if (sock.getFd() != -1)
+    {
+        std::cout << "NEW SOCKET ACCEPTED" << std::endl;
+        std::cout << "  Host Address:" << inet_ntoa(reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)->sin_addr) << std::endl;
+        std::cout << "  FD:" << sock.getFd() << std::endl;
+        std::cout << "  Host Port:" << reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)->sin_port << std::endl;
+    }
+    // std::cout << reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)-> << std::endl;
+
+
+    return sock;
 }
 
 SocketHolder::~SocketHolder()

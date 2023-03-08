@@ -5,8 +5,15 @@
 #include <arpa/inet.h>
 #include <string>
 #include <unistd.h>
+#include <sys/select.h>
 
 namespace ft{
+
+namespace {
+
+
+
+} //namespace
 
 void Server::initialize(){
     for (std::vector<CfgCtx>::iterator it = m_configs.begin(); it != m_configs.end(); it++)
@@ -53,11 +60,33 @@ void Server::initialize(){
             throw std::exception();
         }
         
-        m_sockets.push_back(socket);
+        m_listenSockets.push_back(socket);
     }
 }
 
-Server::Server(const std::vector<CfgCtx>& cfgCtxs): m_configs(cfgCtxs)
+void Server::initReadWriteSets(fd_set &read, fd_set &write)
+{
+    for (std::vector<SocketHolder>::iterator it = m_listenSockets.begin(); it != m_listenSockets.end(); it++)
+    {
+        FD_SET(it->getFd(), &read);
+        FD_SET(it->getFd(), &read);
+        if (m_maxSelectFd <= it->getFd())
+        {
+            m_maxSelectFd = it->getFd();
+        }
+    }
+    for (std::vector<SocketHolder>::iterator it = m_rwSockets.begin(); it != m_rwSockets.end(); it++)
+    {
+        FD_SET(it->getFd(), &read);
+        FD_SET(it->getFd(), &read);
+        {
+            m_maxSelectFd = it->getFd();
+        }
+    }
+}
+
+
+Server::Server(const std::vector<CfgCtx>& cfgCtxs): m_configs(cfgCtxs), m_maxSelectFd(0)
 {
 
 }
@@ -66,34 +95,51 @@ void Server::Run()
 {
     initialize();
 
-    std::vector<SocketHolder> readWriteSockets;
+    fd_set readFd;
+    fd_set writeFd;
+
+    FD_ZERO(&readFd);
+    FD_ZERO(&writeFd);
+
     for(int counter = 0; true ; )
     {
 
+        initReadWriteSets(readFd, writeFd);
+        select(m_maxSelectFd, &readFd, &writeFd, NULL, NULL);
+
         /* accept all incoming connections and create read/write sockets */
-        for (std::vector<SocketHolder>::iterator it = m_sockets.begin(); it != m_sockets.end(); it++)
+        for (std::vector<SocketHolder>::iterator it = m_listenSockets.begin(); it != m_listenSockets.end(); it++)
         {
-            SocketHolder sh = it->accept();
-            if (sh.getFd() != -1)
+            if ( FD_ISSET( it->getFd(), &readFd) )
             {
-                std::cout << "Accepted " << sh.getFd() << std::endl;
-                sh.setNonBlocking();
-                readWriteSockets.push_back(sh);
+                std::cout << "Listener FD mark for READ " << it->getFd() << std::endl;
+                SocketHolder sh = it->accept();
+                if (sh.getFd() != -1)
+                {
+                    std::cout << "Accepted " << sh.getFd() << std::endl;
+                    sh.setNonBlocking();
+                    m_rwSockets.push_back(sh);
+                }
             }
+            std::cout << "Listener FD NOT mark for READ " << it->getFd() << std::endl;
         }
 
-        std::cout << "read sock size" << readWriteSockets.size() << std::endl;
-
         /* READ REQ */
-
-        for (std::vector<SocketHolder>::iterator it = readWriteSockets.begin(); it != readWriteSockets.end(); it++)
+        for (std::vector<SocketHolder>::iterator it = m_rwSockets.begin(); it != m_rwSockets.end(); it++)
         {
-            std::string request_str = it->read();
-            std::cout << "REQ:" << std::endl << request_str << std::endl;
+            if ( FD_ISSET( it->getFd(), &readFd) )
+            {
+                std::cout << "RW SOCKET mark for READ " << it->getFd() << std::endl;
+            
+                std::string request_str = it->read();
+                std::cout << "REQ:" << std::endl << request_str << std::endl;
+            
+            }
+            std::cout << "RW SOCKET NOT mark for READ " << it->getFd() << std::endl;
         }
 
         std::cout << "<<<<<<<" << std::endl;
-        usleep(1000000);
+        usleep(3000000);
 
 
         // /* PREPARE RESP */
