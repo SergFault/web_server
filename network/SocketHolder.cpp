@@ -9,6 +9,7 @@ namespace ft
 
 SocketHolder::SocketHolder(): m_file_descriptor(-1)
 {
+    m_obj_counter = new int(0);
     memset(&m_hostSockAdd, 0, sizeof(m_hostSockAdd));
 }
 
@@ -31,14 +32,28 @@ SocketHolder& SocketHolder::operator=(const SocketHolder& other)
         return *this;
     }
 
-    m_hostSockAdd = other.m_hostSockAdd;
-    if (other.m_file_descriptor != -1)
+    if (m_file_descriptor == -1)
     {
-        m_obj_counter = other.m_obj_counter;
-        ++(*m_obj_counter);
+        m_hostSockAdd = other.m_hostSockAdd;
+        if (other.m_file_descriptor != -1)
+        {
+            m_obj_counter = other.m_obj_counter;
+            ++(*m_obj_counter);
+        }
+        m_file_descriptor = other.m_file_descriptor;
     }
-    m_file_descriptor = other.m_file_descriptor;
+    else if (m_file_descriptor == 1)
+    {
+        std::cout << "SHITDOWN YES " << m_file_descriptor << std::endl;
+        shutdown(m_file_descriptor, SHUT_RDWR);
+        close(m_file_descriptor);
+    }
+    else
+    {
+        --(*m_obj_counter);
+    }
     return *this;
+
 }
 
 SocketHolder::SocketHolder(int fd): m_file_descriptor(fd)
@@ -46,8 +61,11 @@ SocketHolder::SocketHolder(int fd): m_file_descriptor(fd)
     memset(&m_hostSockAdd, 0, sizeof(m_hostSockAdd));
     if (fd != -1)
     {
+        m_obj_counter = new int(1);
+    }
+    else
+    {
         m_obj_counter = new int(0);
-        ++(*m_obj_counter);
     }
 }
 
@@ -91,8 +109,12 @@ SocketHolder::SocketHolder(int domain, int type, int protocol)
                         throw std::runtime_error("Socket options application FAILED\n");
                    }
 
-    m_obj_counter = new int(0);
-    ++(*m_obj_counter);
+    m_obj_counter = new int(1);
+}
+
+bool SocketHolder::isWriterDone() const
+{
+    return (m_respWriter.getStatus() == Done);
 }
 
 void SocketHolder::bind(const struct sockaddr_in *addr)
@@ -123,6 +145,22 @@ void SocketHolder::send(const std::string & str)
         throw std::runtime_error("Error while listen");
     }
     std::cout << "send: " << res << std::endl;
+}
+
+void SocketHolder::sendFromRespHandler()
+{
+    int res;
+
+    m_respWriter.readData(m_buffer);
+
+    res =::send(m_file_descriptor, m_buffer.data, m_buffer.written, 0);
+
+    if (res != m_buffer.written)
+    {
+        throw std::runtime_error("Error sending from response handler");
+    }
+
+    std::cout << "send: " << res << " bytes to fd: " << m_file_descriptor  << std::endl;
 }
 
 std::string SocketHolder::read()
@@ -185,9 +223,15 @@ SocketHolder::~SocketHolder()
     // std::cout << "free " << m_file_descriptor << " objc " << *m_obj_counter <<  std::endl;
     if (m_file_descriptor != -1 && *m_obj_counter <= 1)
     {
+        std::cout << "FD" <<  m_file_descriptor << "SHUTDOWNN: YES. counter" << *m_obj_counter  << std::endl;
         delete m_obj_counter;
         ::shutdown(m_file_descriptor, SHUT_RDWR);
         ::close(m_file_descriptor);
+    }
+    else
+    {
+        std::cout << "FD" <<  m_file_descriptor << "SHUTDOWNN: NO. counter" << *m_obj_counter  << std::endl;
+        --(*m_obj_counter);
     }
 }
 

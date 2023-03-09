@@ -1,5 +1,8 @@
 #pragma once
 
+#include "../resp_writer/RespUtil.hpp"
+#include "../resp_writer/RespWriter.hpp"
+
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,8 +17,8 @@
 #define PORT 8080
 #define BACKLOG 30
 
-namespace ft
-{
+
+namespace ft{
 
 class SocketHolder
 {
@@ -29,20 +32,24 @@ public:
     void bind(const struct sockaddr_in *addr);
     void listen();
     SocketHolder accept();
-    void send(const std::string &);
+    void send(const std::string&);
+    void sendFromRespHandler();
     std::string read();
     SocketHolder& operator=(const SocketHolder& other);
     void setNonBlocking();
     int getFd();
+    bool isWriterDone() const;
 
 private:
     // bool m_req_done = false;
     std::string m_req_string;
     int *m_obj_counter;
     int m_file_descriptor;
-
+    BufferPair m_buffer;
+    ResponseWriter m_respWriter;
     sockaddr m_hostSockAdd;
     uint32_t m_hostSockAddrLen;
 };
+
 
 } // namespace ft
