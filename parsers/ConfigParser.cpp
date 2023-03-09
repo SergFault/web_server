@@ -48,7 +48,7 @@ namespace ft
 
     ConfigParser::ConfigParser(const std::string& filename)
     {
-        std::ifstream conf(filename, O_RDONLY);
+        std::ifstream conf(filename, std::ios::in);
         std::string tmp;
 
         std::getline(conf, tmp, '%');
