@@ -35,8 +35,6 @@ namespace ft
 
         str = str.substr(end, str.size() - end);
 
-        // std::cout << "{{" << str << "}}" << std::endl;
-
         return res;
     }
 
@@ -67,7 +65,16 @@ namespace ft
 
         while ((server = get_server_block(tmp)) != "")
         {
-            std::cout << server << std::endl;
+            CfgCtx  new_record;
+            
+            std::string location;
+            
+            while ((location = get_location_block(server)) != "")
+            {
+
+            }
+
+            m_config.push_back(new_record);
         }
     }
 
