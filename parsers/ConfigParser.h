@@ -4,6 +4,10 @@
 #include <iostream>
 #include <fcntl.h>
 #include <sstream>
+#include <vector>
+
+#include "CfgCtx.hpp"
+
 /*
 // default host: "localhost"
 // default port: "80"
@@ -43,6 +47,7 @@ namespace ft
     class ConfigParser
     {
     private:
+        std::vector<CfgCtx> config;
         std::string get_server_block(const std::string& str);
         std::string clean_comments(const std::string& str);
         std::string get_location_block(const std::string& str);

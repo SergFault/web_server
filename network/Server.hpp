@@ -6,7 +6,8 @@
 #include <sys/select.h>
 #include <vector>
 
-namespace ft{
+namespace ft
+{
 
 struct Location
 {
