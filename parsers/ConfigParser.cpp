@@ -17,7 +17,7 @@ namespace ft
         return res;
     }
 
-    std::string ConfigParser::get_server_block(const std::string& str)
+    std::string ConfigParser::get_server_block(std::string& str)
     {
         size_t start, end;
 
@@ -31,10 +31,16 @@ namespace ft
 
         end = str.find_last_of('}', end);
 
-        return str.substr(start + 1, end - start - 1);
+        std::string res = str.substr(start + 1, end - start - 1);
+
+        str = str.substr(end, str.size() - end);
+
+        // std::cout << "{{" << str << "}}" << std::endl;
+
+        return res;
     }
 
-    std::string ConfigParser::get_location_block(const std::string& str)
+    std::string ConfigParser::get_location_block(std::string& str)
     {
         size_t  start, end, open_br, close_br;
 
@@ -57,9 +63,33 @@ namespace ft
 
         tmp = clean_comments(tmp);
 
-        std::string server = get_server_block(tmp);
+        std::string server;
 
-        std::cout << server << std::endl;
+        while ((server = get_server_block(tmp)) != "")
+        {
+            std::cout << server << std::endl;
+        }
+    }
+
+    std::vector<CfgCtx> ConfigParser::get_config(const std::string& filename)
+    {
+        std::ifstream conf(filename, std::ios::in);
+        std::string tmp;
+
+        std::getline(conf, tmp, '%');
+
+        conf.close();
+
+        tmp = clean_comments(tmp);
+
+        std::string server;
+
+        while ((server = get_server_block(tmp)) != "")
+        {
+
+        }
+
+        return m_config;
     }
 }
 

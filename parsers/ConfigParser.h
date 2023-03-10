@@ -47,13 +47,14 @@ namespace ft
     class ConfigParser
     {
     private:
-        std::vector<CfgCtx> config;
-        std::string get_server_block(const std::string& str);
+        std::vector<CfgCtx> m_config;
+        std::string get_server_block(std::string& str);
         std::string clean_comments(const std::string& str);
-        std::string get_location_block(const std::string& str);
+        std::string get_location_block(std::string& str);
     public:
         ConfigParser() {};
         explicit ConfigParser(const std::string& filename);
         ~ConfigParser() {};
+        std::vector<CfgCtx> get_config(const std::string& filename);
     };
 }
