@@ -204,30 +204,30 @@ namespace ft
     }
 }
 
-int main()
-{
-    std::string str = "POST / HTTP/1.1\r\nHost: 127.0.0.1:8080\r\nContent-Length: 66\r\nContent-Type: multipart/form-data";
+// int main()
+// {
+//     std::string str = "POST / HTTP/1.1\r\nHost: 127.0.0.1:8080\r\nContent-Length: 66\r\nContent-Type: multipart/form-data";
 
-    ft::HttpReqHeader req(str);
+//     ft::HttpReqHeader req(str);
 
-    ft::request_headers res = req.get_req_headers();
+//     ft::request_headers res = req.get_req_headers();
 
-    std::cout << std::endl;
+//     std::cout << std::endl;
 
-    std::cout << res.st_uri.scheme << res.st_uri.hostname << res.st_uri.port
-        << res.st_uri.path << res.st_uri.fragment << std::endl;
+//     std::cout << res.st_uri.scheme << res.st_uri.hostname << res.st_uri.port
+//         << res.st_uri.path << res.st_uri.fragment << std::endl;
 
-    std::cout << res.st_uri.path << std::endl;
-    std::cout << res.method << std::endl;
-    std::cout << res.host << std::endl;
-    std::cout << res.port << std::endl;
-    std::cout << res.cont_length << std::endl;
-    std::cout << res.content_type << std::endl;
-    std::cout << res.keep_alive << std::endl;
-    std::cout << res.chunked << std::endl;
-    std::cout << res.req_folder << std::endl;
-    std::cout << res.rel_path << std::endl;
+//     std::cout << res.st_uri.path << std::endl;
+//     std::cout << res.method << std::endl;
+//     std::cout << res.host << std::endl;
+//     std::cout << res.port << std::endl;
+//     std::cout << res.cont_length << std::endl;
+//     std::cout << res.content_type << std::endl;
+//     std::cout << res.keep_alive << std::endl;
+//     std::cout << res.chunked << std::endl;
+//     std::cout << res.req_folder << std::endl;
+//     std::cout << res.rel_path << std::endl;
 
 
-    return 0;
-}
+//     return 0;
+// }
