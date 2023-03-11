@@ -60,11 +60,13 @@ namespace ft
 
     struct request_headers
     {
-        struct uri st_uri;
         std::string method;
-
         std::string host;
         size_t      port;
+        std::string path;
+
+        std::map<std::string, std::string> query;
+        std::string fragment;
 
         size_t  cont_length;
         std::string content_type;

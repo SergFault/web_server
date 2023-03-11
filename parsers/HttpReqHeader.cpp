@@ -189,7 +189,9 @@ namespace ft
     {
         struct request_headers res;
 
-        res.st_uri = m_st_uri;
+        res.query = m_st_uri.query;
+        res.fragment = m_st_uri.fragment;
+        res.path = m_st_uri.path;
         res.method = m_method;
         res.host = m_host;
         res.port = std::stoi(m_port);
