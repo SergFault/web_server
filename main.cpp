@@ -14,14 +14,14 @@
 int main(){
 
     /* todo make proper config parsing */
-    std::vector<CfgCtx> contexts;
-    contexts.push_back(CfgCtx("127.0.0.1", "8080"));
-    contexts.push_back(CfgCtx("127.0.0.1", "8081"));
-    contexts.push_back(CfgCtx("127.0.0.1", "8082"));
+    // std::vector<ft::CfgCtx> contexts;
+    // contexts.push_back(ft::CfgCtx("127.0.0.1", "8080"));
+    // contexts.push_back(ft::CfgCtx("127.0.0.1", "8081"));
+    // contexts.push_back(CfgCtx("127.0.0.1", "8082"));
 
 
 
-    ft::Server(contexts).Run();
+    ft::Server("webserv.conf").Run();
 
     return 0;
 }

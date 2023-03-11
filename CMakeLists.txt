@@ -10,7 +10,10 @@ add_executable(${EXEC_NAME} main.cpp
                             network/SocketHolder.cpp
                             network/Server.cpp
                             parsing/CfgCtx.cpp
-                            body_handler/UploadBodyHandler.cpp)
+                            body_handler/UploadBodyHandler.cpp
+                            parsers/ConfigParser.cpp
+                            parsers/HttpReqHeader.cpp
+                            )
 
 target_compile_options(server PRIVATE "-fsanitize=address")
 target_link_options(server PRIVATE "-fsanitize=address")

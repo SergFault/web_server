@@ -14,10 +14,11 @@ class Server
 {
 public:
     void Run();
-    Server(const std::vector<CfgCtx>& cfgCtxs);
+    Server(const std::string& confPath);
 private:
     void initReadWriteSets(fd_set &read, fd_set &write);
     std::vector<CfgCtx> m_configs;
+    std::string m_configsPath;
     std::vector< Shared_ptr<SocketHolder> > m_listenSockets;
     std::vector< Shared_ptr<SocketHolder> > m_rwSockets;
 

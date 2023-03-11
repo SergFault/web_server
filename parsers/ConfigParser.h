@@ -6,7 +6,7 @@
 #include <sstream>
 #include <vector>
 
-#include "CfgCtx.hpp"
+#include "../parsing/CfgCtx.hpp"
 
 /*
 // default host: "localhost"

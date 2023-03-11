@@ -1,5 +1,7 @@
 #include "HttpReqHeader.hpp"
 
+#include <string>
+
 namespace ft
 {
 

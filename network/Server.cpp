@@ -7,6 +7,7 @@
 #include <string>
 #include <unistd.h>
 #include <sys/select.h>
+#include "../parsers/ConfigParser.h"
 
 namespace ft{
 
@@ -17,6 +18,9 @@ namespace {
 } //namespace
 
 void Server::initialize(){
+
+    std::vector<CfgCtx> configs = ConfigParser().get_config(m_configsPath);
+
     for (std::vector<CfgCtx>::iterator it = m_configs.begin(); it != m_configs.end(); it++)
     {
         struct sockaddr_in server_address;
@@ -93,7 +97,7 @@ void Server::initReadWriteSets(fd_set &read, fd_set &write)
 }
 
 
-Server::Server(const std::vector<CfgCtx>& cfgCtxs): m_configs(cfgCtxs), m_maxSelectFd(0)
+Server::Server(const std::string& confPath): m_configsPath(confPath), m_maxSelectFd(0)
 {
 
 }
