@@ -6,72 +6,20 @@
 namespace ft
 {
 
-
-SocketHolder::SocketHolder(): m_file_descriptor(-1)
+SocketHolder::SocketHolder(int desc): m_file_descriptor(desc), m_hostSockAddrLen(0)
 {
-    m_obj_counter = new int(0);
+    m_procStatus = ReadRequest;
     memset(&m_hostSockAdd, 0, sizeof(m_hostSockAdd));
-}
-
-SocketHolder::SocketHolder(const SocketHolder &other)
-{
-    memset(&m_hostSockAdd, 0, sizeof(m_hostSockAdd));
-    if (other.m_file_descriptor != -1)
-    {
-        m_obj_counter = other.m_obj_counter;
-        ++(*m_obj_counter);
-    }
-    m_file_descriptor = other.m_file_descriptor;
-}
-
-
-SocketHolder& SocketHolder::operator=(const SocketHolder& other)
-{
-    if(&other == this)
-    {
-        return *this;
-    }
-
-    if (m_file_descriptor == -1)
-    {
-        m_hostSockAdd = other.m_hostSockAdd;
-        if (other.m_file_descriptor != -1)
-        {
-            m_obj_counter = other.m_obj_counter;
-            ++(*m_obj_counter);
-        }
-        m_file_descriptor = other.m_file_descriptor;
-    }
-    else if (m_file_descriptor == 1)
-    {
-        std::cout << "SHITDOWN YES " << m_file_descriptor << std::endl;
-        shutdown(m_file_descriptor, SHUT_RDWR);
-        close(m_file_descriptor);
-    }
-    else
-    {
-        --(*m_obj_counter);
-    }
-    return *this;
-
-}
-
-SocketHolder::SocketHolder(int fd): m_file_descriptor(fd)
-{
-    memset(&m_hostSockAdd, 0, sizeof(m_hostSockAdd));
-    if (fd != -1)
-    {
-        m_obj_counter = new int(1);
-    }
-    else
-    {
-        m_obj_counter = new int(0);
-    }
 }
 
 int SocketHolder::getFd()
 {
     return m_file_descriptor;
+}
+
+ProcessStatus SocketHolder::getStatus() const
+{
+    return m_procStatus;
 }
 
 void SocketHolder::setNonBlocking()
@@ -89,7 +37,7 @@ void SocketHolder::setNonBlocking()
     }
 }
 
-SocketHolder::SocketHolder(int domain, int type, int protocol)
+SocketHolder::SocketHolder(int domain, int type, int protocol): m_procStatus(ReadRequest)
 {
     m_file_descriptor = ::socket(domain, type,  protocol);
     memset(&m_hostSockAdd, 0, sizeof(m_hostSockAdd));
@@ -108,13 +56,6 @@ SocketHolder::SocketHolder(int domain, int type, int protocol)
                         close(m_file_descriptor);
                         throw std::runtime_error("Socket options application FAILED\n");
                    }
-
-    m_obj_counter = new int(1);
-}
-
-bool SocketHolder::isWriterDone() const
-{
-    return (m_respWriter.getStatus() == Done);
 }
 
 void SocketHolder::bind(const struct sockaddr_in *addr)
@@ -145,22 +86,6 @@ void SocketHolder::send(const std::string & str)
         throw std::runtime_error("Error while listen");
     }
     std::cout << "send: " << res << std::endl;
-}
-
-void SocketHolder::sendFromRespHandler()
-{
-    int res;
-
-    m_respWriter.readData(m_buffer);
-
-    res =::send(m_file_descriptor, m_buffer.data, m_buffer.written, 0);
-
-    if (res != m_buffer.written)
-    {
-        throw std::runtime_error("Error sending from response handler");
-    }
-
-    std::cout << "send: " << res << " bytes to fd: " << m_file_descriptor  << std::endl;
 }
 
 std::string SocketHolder::read()
@@ -196,20 +121,91 @@ std::string SocketHolder::read()
     return std::string(buffer);
 }
 
-SocketHolder SocketHolder::accept()
+void SocketHolder::SetNextState()
+{
+    switch (m_procStatus)
+    {
+        case (ReadRequest):
+            std::cout << "now STEP: ReadBody" << std::endl;
+            m_procStatus = ReadBody;
+            break;
+        case (ReadBody):
+            std::cout << "now STEP: ReadDone" << std::endl;
+            m_procStatus = ReadDone;
+            break;
+        case (ReadDone):
+            std::cout << "now STEP: WriteRequest" << std::endl;
+            m_procStatus = WriteRequest;
+            break;
+        case (WriteRequest):
+            std::cout << "now STEP: WriteBody" << std::endl;
+            m_procStatus = WriteBody;
+            break;
+        case (WriteBody):
+            std::cout << "now STEP: WriteRequest" << std::endl;
+            m_procStatus = WriteRequest;
+            break;
+        case (Done):
+            std::cout << "now STEP: Done" << std::endl;
+            break;
+    }
+
+}
+
+void SocketHolder::ProcessRead()
+{
+    int res = recv(m_file_descriptor, m_buffer, BUFFER_SIZE - 1, 0);
+    m_buffer[BUFFER_SIZE - 1] = '\0';
+
+    if (res < 0)
+    {
+        std::cout << m_file_descriptor << std::endl;
+        perror("FAILED");
+        throw std::runtime_error("ProcessRead FAILED");
+    }
+
+    m_buffer[res] = '\0';
+    std::string resChunk(m_buffer);
+
+    //todo debug
+    std::cout << "procStat" << m_procStatus << std::endl;
+
+    switch (m_procStatus)
+    {
+    case ReadRequest:
+        AccumulateRequest(resChunk);
+        break;
+    case ReadBody:
+        if (m_bodyHandler.get() == NULL)
+        {
+            InitBodyHandler();
+        }
+        HandleBody(resChunk);
+        break;
+
+    default:
+
+        break;
+    }
+}
+
+Shared_ptr<SocketHolder> SocketHolder::accept()
 {
     int res = ::accept(m_file_descriptor, &m_hostSockAdd, &m_hostSockAddrLen);
 
     // std::cout << res << std::endl;
 
-    SocketHolder sock(res);
+    // SocketHolder sock(res);
+    Shared_ptr<SocketHolder> sock(new SocketHolder(res));
+
+    std::cout << "Status::: " << std::endl;
 
     /* todo debug */
-    if (sock.getFd() != -1)
+    if (sock->getFd() != -1)
     {
         std::cout << "NEW SOCKET ACCEPTED" << std::endl;
         std::cout << "  Host Address:" << inet_ntoa(reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)->sin_addr) << std::endl;
-        std::cout << "  FD:" << sock.getFd() << std::endl;
+        std::cout << "  FD:" << sock->getFd() << std::endl;
         std::cout << "  Host Port:" << reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)->sin_port << std::endl;
     }
     // std::cout << reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)-> << std::endl;
@@ -220,19 +216,51 @@ SocketHolder SocketHolder::accept()
 
 SocketHolder::~SocketHolder()
 {
+
+    std::cout << std::endl << "<<<<<<<socket destroyed " << m_file_descriptor << std::endl;
+    std::cout << "          m_req_string:" <<  m_req_string << std::endl;
+    std::cout << "          m_remainAfterRequest:" << m_remainAfterRequest << std::endl;
+
     // std::cout << "free " << m_file_descriptor << " objc " << *m_obj_counter <<  std::endl;
-    if (m_file_descriptor != -1 && *m_obj_counter <= 1)
+    if (m_file_descriptor != -1)
     {
-        std::cout << "FD" <<  m_file_descriptor << "SHUTDOWNN: YES. counter" << *m_obj_counter  << std::endl;
-        delete m_obj_counter;
         ::shutdown(m_file_descriptor, SHUT_RDWR);
         ::close(m_file_descriptor);
     }
-    else
+}
+
+void SocketHolder::AccumulateRequest(const std::string& str)
+{
+    std::string::size_type found = str.find("\r\n\r\n");
+    if (found != std::string::npos)
     {
-        std::cout << "FD" <<  m_file_descriptor << "SHUTDOWNN: NO. counter" << *m_obj_counter  << std::endl;
-        --(*m_obj_counter);
+        m_remainAfterRequest = str.substr(found + 4);
+        InitBodyHandler();
+        m_bodyHandler->ProcessData(m_remainAfterRequest);
+        m_remainAfterRequest.clear();
+        m_procStatus = Done;
+    }
+    m_req_string.append(str);
+}
+
+void SocketHolder::InitBodyHandler()
+{
+    std::cout << "Check init handler" << std::endl; 
+    if (m_bodyHandler.get() == NULL)
+    {
+        std::cout << "INIT HANDLER" << std::endl;
+        Shared_ptr<IBodyHandler> sh_ptr(new UploadBodyHandler("default_path"));
+        m_bodyHandler = sh_ptr;
     }
 }
+
+void SocketHolder::HandleBody(std::string& chunkStr)
+{
+    InitBodyHandler();
+
+    std::cout << "HANDLE BODY" << std::endl;
+    m_bodyHandler->ProcessData(chunkStr);
+}
+
 
 } //namespace ft

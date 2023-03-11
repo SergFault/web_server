@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include "../server common.hpp"
 
 #include <iostream>
 #include <vector>
@@ -34,11 +35,12 @@ void Server::initialize(){
 
         /* Socket creation */
         std::cout << "There" << std::endl;
-        SocketHolder socket;
+        Shared_ptr<SocketHolder> socket_ptr;
 
         try
         {
-            socket = SocketHolder(AF_INET, SOCK_STREAM, 0);
+            // Shared_ptr<SocketHolder> sh_p(new SocketHolder(AF_INET, SOCK_STREAM, 0));
+            socket_ptr = Shared_ptr<SocketHolder>(new SocketHolder(AF_INET, SOCK_STREAM, 0));
         }
         catch(const std::exception &ex)
         {
@@ -46,13 +48,13 @@ void Server::initialize(){
             throw std::exception();
         }
 
-        std::cout << "There" << std::endl;
+        std::cout << "There2" << std::endl;
 
         try
         {
-            socket.bind(&server_address);
-            socket.listen();
-            socket.setNonBlocking();
+            socket_ptr->bind(&server_address);
+            socket_ptr->listen();
+            socket_ptr->setNonBlocking();
         }
         catch(const std::exception &ex)
         {
@@ -60,30 +62,32 @@ void Server::initialize(){
             throw std::exception();
         }
         
-        m_listenSockets.push_back(socket);
+        std::cout << "There2" << std::endl;
+
+        m_listenSockets.push_back(socket_ptr);
     }
 }
 
 void Server::initReadWriteSets(fd_set &read, fd_set &write)
 {
-    for (std::vector<SocketHolder>::iterator it = m_listenSockets.begin(); it != m_listenSockets.end(); it++)
+    for (std::vector< Shared_ptr<SocketHolder> >::iterator it = m_listenSockets.begin(); it != m_listenSockets.end(); it++)
     {
-        FD_SET(it->getFd(), &read);
+        FD_SET((*it)->getFd(), &read);
 
-        if (m_maxSelectFd <= it->getFd())
+        if (m_maxSelectFd <= (*it)->getFd())
         {
-            m_maxSelectFd = it->getFd();
+            m_maxSelectFd = (*it)->getFd() + 1;
         }
     }
 
-    for (std::vector<SocketHolder>::iterator it = m_rwSockets.begin(); it != m_rwSockets.end(); it++)
+    for (std::vector< Shared_ptr<SocketHolder> >::iterator it = m_rwSockets.begin(); it != m_rwSockets.end(); it++)
     {
-        FD_SET(it->getFd(), &write);
-        FD_SET(it->getFd(), &read);
+        FD_SET((*it)->getFd(), &write);
+        FD_SET((*it)->getFd(), &read);
 
-        if (m_maxSelectFd <= it->getFd())
+        if (m_maxSelectFd <= (*it)->getFd())
         {
-            m_maxSelectFd = it->getFd();
+            m_maxSelectFd = (*it)->getFd() + 1;
         }
     }
 }
@@ -101,73 +105,73 @@ void Server::Run()
     fd_set readFd;
     fd_set writeFd;
 
-    FD_ZERO(&readFd);
-    FD_ZERO(&writeFd);
 
     for(int counter = 0; true ; )
     {
+        FD_ZERO(&readFd);
+        FD_ZERO(&writeFd);
+
         initReadWriteSets(readFd, writeFd);
         select(m_maxSelectFd, &readFd, &writeFd, NULL, NULL);
 
         /* accept all incoming connections and create read/write sockets */
-        for (std::vector<SocketHolder>::iterator it = m_listenSockets.begin(); it != m_listenSockets.end(); it++)
+        for (std::vector< Shared_ptr<SocketHolder> >::iterator it = m_listenSockets.begin(); it != m_listenSockets.end(); it++)
         {
-            if ( FD_ISSET( it->getFd(), &readFd) )
+            if ( FD_ISSET( (*it)->getFd(), &readFd) )
             {
-                std::cout << "Listener FD mark YES-READ " << it->getFd() << std::endl;
-                SocketHolder sh = it->accept();
-                if (sh.getFd() != -1)
+                std::cout << "Listener FD mark YES-READ " << (*it)->getFd() << std::endl;
+                Shared_ptr<SocketHolder> sh_h = (*it)->accept();
+                if (sh_h->getFd() != -1)
                 {
-                    std::cout << "Accepted " << sh.getFd() << std::endl;
-                    sh.setNonBlocking();
-                    m_rwSockets.push_back(sh);
+                    std::cout << "Accepted " << sh_h->getFd() << "Status" << sh_h->getStatus() << std::endl;
+                    sh_h->setNonBlocking();
+                    m_rwSockets.push_back(sh_h);
                 }
             }
-            std::cout << "Listener FD mark NO-READ " << it->getFd() << std::endl;
+            std::cout << "Listener FD mark NO-READ " << (*it)->getFd() << std::endl;
         }
 
         /* READ REQ */
-        for (std::vector<SocketHolder>::iterator it = m_rwSockets.begin(); it != m_rwSockets.end(); it++)
+        for (std::vector< Shared_ptr<SocketHolder> > ::iterator it = m_rwSockets.begin(); it != m_rwSockets.end(); it++)
         {
-            if ( FD_ISSET( it->getFd(), &readFd) )
+            if ( FD_ISSET( (*it)->getFd(), &readFd) )
             {
-                std::cout << "RW SOCKET mark YES-READ " << it->getFd() << std::endl;
+                std::cout << "RW SOCKET mark YES-READ " << (*it)->getFd() << std::endl;
             
-                std::string request_str = it->read();
-                std::cout << "REQ:" << std::endl << request_str << std::endl;
-            
+                (*it)->ProcessRead();            
             }
-            std::cout << "RW SOCKET mark NO-READ " << it->getFd() << std::endl;
+            std::cout << "RW SOCKET mark NO-READ " << (*it)->getFd() << std::endl;
         }
 
         /* WRITE RESP */
-        for (std::vector<SocketHolder>::iterator it = m_rwSockets.begin(); it != m_rwSockets.end(); it++)
+        for (std::vector< Shared_ptr<SocketHolder> >::iterator it = m_rwSockets.begin(); it != m_rwSockets.end(); it++)
         {
-            if ( FD_ISSET( it->getFd(), &writeFd) )
+            if ( FD_ISSET( (*it)->getFd(), &writeFd) )
             {
-                std::cout << "RW SOCKET mark: YES-WRITE " << it->getFd() << std::endl;
+                std::cout << "RW SOCKET mark: YES-WRITE " << (*it)->getFd() << std::endl;
             
-                it->sendFromRespHandler();
+                //todo send
                 // std::cout << "REQ:" << std::endl << request_str << std::endl;
             
             }
             // it->sendFromRespHandler();
-            std::cout << "RW SOCKET mark: NO-WRITE" << it->getFd() << std::endl;
+            std::cout << "RW SOCKET mark: NO-WRITE" << (*it)->getFd() << std::endl;
         }
 
         /* REMOVE DONE FD */
-        for (std::vector<SocketHolder>::iterator it = m_rwSockets.begin(); it != m_rwSockets.end();)
+        for (std::vector< Shared_ptr<SocketHolder> >::iterator it = m_rwSockets.begin(); it != m_rwSockets.end();)
         {
-            if (it->isWriterDone())
+            if ((*it)->getStatus() == Done)
             {
-                std::cout << "socket: " << it->getFd() << " is DONE! DELETING HIM!" << std::endl;
+                std::cout << "socket: " << (*it)->getFd() << " is DONE! DELETING HIM!" << std::endl;
 
                 // it++;
+                std::cout << "ERASE iterator at " << (*it)->getFd() << std::endl;
+
                 it = m_rwSockets.erase(it);
 
-                std::cout << "Now iterator at " << it->getFd() << std::endl;
+                // std::cout << "Now iterator at " << (*it)->getFd() << std::endl;
                 // std::cout << "REQ:" << std::endl << request_str << std::endl;
-            
             }
             else
             {
@@ -176,36 +180,10 @@ void Server::Run()
             // it->sendFromRespHandler();
         }
 
+        exit(0);
+
         std::cout << "<<<<<<<" << std::endl;
-        usleep(1000000);
-
-
-        // /* PREPARE RESP */
-        // std::stringstream ss;
-        // /* if "favicon ico" request - just ignore for now*/
-        // if (request_str.find("favicon") != std::string::npos)
-        // {
-        //     ss << "HTTP/1.1 200 OK\r\n\r\n<html>\n\r<body>\n\r\r NO FAVICON \n\r</body>\n</html>";
-        // } 
-        // else
-        // {
-        //     ss << "HTTP/1.1 200 OK\r\n\r\n<html>\n\r<body>\n\r\rhello " << counter << " times\n\r</body>\n</html>";
-        //     counter++;
-        // }
-        // accepted_socket.send(ss.str());
+        usleep(2000000);
     }
-    std::cout << "server run" << std::endl;
 }
-
-
-// void Server::Run()
-// {
-//     SocketHolder sock1 = SocketHolder(1);
-//     SocketHolder sock2 = SocketHolder(2);
-//     sock2 = sock1;
-//     // SocketHolder sock_default = SocketHolder();
-//     // sock_default = sock1;
-
-// }
-
 }

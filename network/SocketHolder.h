@@ -1,7 +1,9 @@
 #pragma once
 
-#include "../resp_writer/RespUtil.hpp"
-#include "../resp_writer/RespWriter.hpp"
+#include "../server common.hpp"
+#include "../utils/SharedPtr.hpp"
+#include "../body_handler/IBodyHandler.hpp"
+#include "../body_handler/UploadBodyHandler.hpp"
 
 #include <netinet/in.h>
 #include <stdio.h>
@@ -20,35 +22,58 @@
 
 namespace ft{
 
+enum ProcessStatus
+{
+    ReadRequest,
+    ReadBody,
+    ReadDone,
+    WriteBody,
+    WriteRequest,
+    Done,
+};
+
 class SocketHolder
 {
 public:
-    SocketHolder();
-    explicit SocketHolder(int fd);
-    SocketHolder(const SocketHolder& other);
     SocketHolder(int domain, int type, int protocol);
+    SocketHolder(int desc);
 
     ~SocketHolder();
     void bind(const struct sockaddr_in *addr);
     void listen();
-    SocketHolder accept();
+    Shared_ptr<SocketHolder> accept();
     void send(const std::string&);
-    void sendFromRespHandler();
     std::string read();
-    SocketHolder& operator=(const SocketHolder& other);
+    ProcessStatus getStatus() const;
     void setNonBlocking();
     int getFd();
-    bool isWriterDone() const;
+    void ProcessRead();
+    void ProcesWright();
+
 
 private:
+    SocketHolder();
+    void SetNextState();
+    void AccumulateRequest(const std::string& reqChunk);
+    void HandleBody(std::string& str);
     // bool m_req_done = false;
+
+    /* whole request as string */
     std::string m_req_string;
-    int *m_obj_counter;
+    std::string m_remainAfterRequest;
+
+    void InitBodyHandler();
+    Shared_ptr<IBodyHandler> m_bodyHandler;
+
     int m_file_descriptor;
-    BufferPair m_buffer;
-    ResponseWriter m_respWriter;
+
+    /* host info */
     sockaddr m_hostSockAdd;
     uint32_t m_hostSockAddrLen;
+
+    ProcessStatus m_procStatus;
+
+    char m_buffer[1024];
 };
 
 

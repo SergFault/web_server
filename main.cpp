@@ -2,6 +2,7 @@
 #include "network/SocketHolder.h"
 #include "network/Server.hpp"
 #include "parsing/CfgCtx.hpp"
+#include "utils/SharedPtr.hpp"
 
 #include <vector>
 
@@ -17,6 +18,7 @@ int main(){
     contexts.push_back(CfgCtx("127.0.0.1", "8080"));
     contexts.push_back(CfgCtx("127.0.0.1", "8081"));
     contexts.push_back(CfgCtx("127.0.0.1", "8082"));
+
 
 
     ft::Server(contexts).Run();
