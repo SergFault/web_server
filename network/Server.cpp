@@ -19,12 +19,12 @@ namespace {
 
 void Server::initialize(){
 
-    std::vector<CfgCtx> configs = ConfigParser().get_config(m_configsPath);
+    m_configs = ConfigParser().get_config(m_configsPath);
 
-    CfgCtx ctx;
-    ctx.ip = "127.0.0.1";
-    ctx.port = "8080";
-    m_configs.push_back(ctx);
+//    CfgCtx ctx;
+//    ctx.ip = "127.0.0.1";
+//    ctx.port = "8080";
+//    m_configs.push_back(ctx);
 
     for (std::vector<CfgCtx>::iterator it = m_configs.begin(); it != m_configs.end(); it++)
     {
