@@ -42,5 +42,6 @@ namespace ft
         std::map<u_short, std::string> error_pages;
         std::string ip;
         std::string port;
+        std::string root;
     };
 } // ft

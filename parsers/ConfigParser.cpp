@@ -94,16 +94,77 @@ namespace ft
 
         while ((server = get_server_block(tmp)) != "")
         {
+            CfgCtx v_server;
+            v_server.ip = "0.0.0.0";
+            v_server.port = "80";
 
+            //get locations
+            
+            std::istringstream  iss_server_params(server);
+            std::string param;
+            
+            while (std::getline(iss_server_params, param, ';'))
+            {
+                std::istringstream  iss_key_values(param);
+                std::string key;
+                
+                iss_key_values >> key;
+
+                if (key == "client_max_body_size")
+                {
+                    std::string value;
+                    iss_key_values >> value;
+                    v_server.client_max_body_size = std::atoi(value.c_str());
+                }
+                else if (key == "listen")
+                {
+                    std::string tmp_ip = "";
+                    std::string tmp_port = "";
+
+                    iss_key_values >> std::ws;
+                    std::getline(iss_key_values, tmp_ip, ':');
+                    if (tmp_ip.find('.') == std::string::npos)
+                    {
+                        v_server.port = tmp_ip;
+                    }
+                    else
+                    {
+                        v_server.ip = tmp_ip;
+                        iss_key_values >> tmp_port;
+                        if (tmp_port != "")
+                            v_server.port = tmp_port;
+                    }
+                }
+                else if (key == "server_name")
+                {
+                    std::string s_name;
+                    while (iss_key_values >> s_name)
+                        v_server.server_names.insert(s_name);
+                }
+                else if (key == "error_page")
+                {
+                    u_short err_code;
+                    std::string err_page;
+                    iss_key_values >> err_code >> err_page;
+                    v_server.error_pages.insert(std::make_pair(err_code, err_page));
+                }
+                else if (key == "root")
+                {
+                    iss_key_values >> v_server.root;
+                }
+            }
+
+            m_config.push_back(v_server);
         }
 
         return m_config;
     }
 }
 
-// int main(int argc, char *argv[])
-// {
-//     ft::ConfigParser    cfg(argv[1]);
+int main(int argc, char *argv[])
+{
+    ft::ConfigParser    cfg;
+    cfg.get_config(argv[1]);
 
-//     return 0;
-// }
+    return 0;
+}
