@@ -38,7 +38,8 @@ namespace ft
         m_keep_alive(true),
         m_chunked(false),
         m_req_folder(false),
-        m_rel_path(false)
+        m_rel_path(false),
+		m_cgi(false)
     {
         std::istringstream ist(string); 
         std::string line;
@@ -107,6 +108,13 @@ namespace ft
         // std::cout << "[" << headers << "]" << std::endl; //debug;
 
         parse_uri(m_uri);
+
+	  	if (m_st_uri.path.size() >= 4)
+	  	{
+			std::string	fr = m_st_uri.path.substr(m_st_uri.path.size() - 4, 4);
+			if (fr == ".cgi")
+			  	m_cgi = true;
+	  	}
     }
 
     int HttpReqHeader::parse_uri(const std::string& uri)
@@ -204,6 +212,7 @@ namespace ft
         res.content_type = m_content_type;
         res.is_req_folder = m_req_folder;
         res.rel_path = m_rel_path;
+		res.is_cgi = m_cgi;
 
         return res;
     }

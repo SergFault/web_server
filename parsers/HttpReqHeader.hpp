@@ -75,6 +75,7 @@ namespace ft
         bool    is_chunked;
         bool    is_req_folder;
         bool    rel_path;
+		bool	is_cgi;
     }; 
 
     class HttpReqHeader
@@ -96,6 +97,7 @@ namespace ft
         bool        m_chunked;
         bool        m_req_folder;
         bool        m_rel_path;
+		bool		m_cgi;
         
     public:
         HttpReqHeader() {};
