@@ -1,5 +1,7 @@
 #include "ConfigParser.h"
 
+#include <cstdlib>
+
 namespace ft
 {
     std::string ConfigParser::clean_comments(const std::string& str)
@@ -89,7 +91,7 @@ namespace ft
 
     std::vector<CfgCtx> ConfigParser::get_config(const std::string& filename)
     {
-        std::ifstream conf(filename, std::ios::in);
+        std::ifstream conf(filename.c_str(), std::ios::in);
         std::string tmp;
 
         std::getline(conf, tmp, '%');
@@ -182,7 +184,7 @@ namespace ft
                 {
                     std::string value;
                     iss_key_values >> value;
-                    v_server.client_max_body_size = std::atoi(value.c_str());
+                    v_server.client_max_body_size = atoi(value.c_str());
                 }
                 else if (key == "listen")
                 {

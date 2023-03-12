@@ -1,6 +1,7 @@
 #include "HttpReqHeader.hpp"
 
 #include <string>
+#include <cstdlib>
 
 namespace ft
 {
@@ -196,8 +197,8 @@ namespace ft
         res.path = m_st_uri.path;
         res.method = m_method;
         res.host = m_host;
-        res.port = std::atoi(m_port.c_str());
-        res.cont_length = std::atoi(m_content_length.c_str());
+        res.port = atoi(m_port.c_str());
+        res.cont_length = atoi(m_content_length.c_str());
         res.keep_alive = m_keep_alive;
         res.chunked = m_chunked;
         res.content_type = m_content_type;
