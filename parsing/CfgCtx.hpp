@@ -23,18 +23,23 @@ namespace ft
         std::string upload_path;
     };
 
-    struct VirtualServer
-    {
-        std::vector<Location>   locations;
-        std::set<std::string> names;
-        // добавить контейнер под пары host:port
-        size_t  client_max_body_size;
-        std::map<int, std::string> error_pages;//<код:путь> контейнер под error_pages
-    };
+    // struct VirtualServer
+    // {
+    //     std::vector<Location>   locations;
+    //     std::set<std::string> names;
+    //     // добавить контейнер под пары host:port
+    //     size_t  client_max_body_size;
+    //     std::map<int, std::string> error_pages;//<код:путь> контейнер под error_pages
+    // };
 
     struct CfgCtx
     {
         //CfgCtx(const std::string& ip, const std::string& port): ip(ip), port(port){};
+        std::map<std::string, Location> locations;
+        std::set<std::string> server_names;
+        std::set<std::string> location_paths;
+        size_t  client_max_body_size;
+        std::map<u_short, std::string> error_pages;
         std::string ip;
         std::string port;
     };
