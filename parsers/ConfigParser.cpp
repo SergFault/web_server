@@ -106,7 +106,7 @@ namespace ft
         {
             CfgCtx v_server;
             v_server.ip = "0.0.0.0";
-            v_server.port = "80";
+            v_server.port = "8080";
 
             std::string location;
             while ((location = get_location_block(server)) != "")
@@ -162,6 +162,10 @@ namespace ft
                     {
                         new_location.allow_cgi = true;
                     }
+					else if (l_arg == "index")
+					{
+					  	iss_loc_values >> new_location.index;
+					}
                 }
 
                 v_server.location_paths.insert(new_location.path);
