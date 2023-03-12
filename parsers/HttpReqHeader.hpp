@@ -72,8 +72,8 @@ namespace ft
         std::string content_type;
         
         bool    keep_alive;
-        bool    chunked;
-        bool    req_folder;
+        bool    is_chunked;
+        bool    is_req_folder;
         bool    rel_path;
     }; 
 
