@@ -200,9 +200,9 @@ namespace ft
         res.port = atoi(m_port.c_str());
         res.cont_length = atoi(m_content_length.c_str());
         res.keep_alive = m_keep_alive;
-        res.chunked = m_chunked;
+        res.is_chunked = m_chunked;
         res.content_type = m_content_type;
-        res.req_folder = m_req_folder;
+        res.is_req_folder = m_req_folder;
         res.rel_path = m_rel_path;
 
         return res;
