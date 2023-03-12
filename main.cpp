@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
     // contexts.push_back(ft::CfgCtx("127.0.0.1", "8081"));
     // contexts.push_back(CfgCtx("127.0.0.1", "8082"));
 
-    ft::Server(argv[1]).Run();
+    ft::Server("webserv.conf").Run();
 
     return 0;
 }
