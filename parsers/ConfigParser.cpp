@@ -48,6 +48,7 @@ namespace ft
             return "";
         start = str.find("location ");
         start = str.find(' ', start);
+
     }
 
     ConfigParser::ConfigParser(const std::string& filename)
@@ -100,9 +101,9 @@ namespace ft
     }
 }
 
-int main(int argc, char *argv[])
-{
-    ft::ConfigParser    cfg(argv[1]);
+// int main(int argc, char *argv[])
+// {
+//     ft::ConfigParser    cfg(argv[1]);
 
-    return 0;
-}
+//     return 0;
+// }
