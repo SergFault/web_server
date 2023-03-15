@@ -12,6 +12,7 @@ add_executable(${EXEC_NAME} main.cpp
                             parsing/CfgCtx.cpp
                             body_handler/UploadBodyHandler.cpp
                             parsers/ConfigParser.cpp
+                            process/Handler.cpp
                             # parsers/HttpReqHeader.cpp
                             )
 

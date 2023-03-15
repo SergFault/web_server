@@ -3,6 +3,12 @@
 #include <bitset>
 #include <fcntl.h>
 
+#define CHUNKED_HEADER "HTTP/1.1 200 OK\r\n"\
+"Content-Type: text/html\r\n"\
+"Transfer-Encoding: chunked\r\n"\
+"Connection: keep-alive\r\n"\
+"\r\n"\
+
 namespace ft
 {
 
@@ -176,16 +182,40 @@ void SocketHolder::ProcessRead()
         AccumulateRequest(resChunk);
         break;
     case ReadBody:
-        if (m_bodyHandler.get() == NULL)
-        {
-            InitBodyHandler();
-        }
-        HandleBody(resChunk);
         break;
 
     default:
 
         break;
+    }
+}
+
+void SocketHolder::InitWriteHandler()
+{
+    if (m_writeHandler.get() == NULL)
+    {
+        std::cout << "InitWriteHandler" << std::endl;
+        m_writeHandler = Shared_ptr<IOutputHandler>(new OutputChunkedHandler(m_file_descriptor,
+                                                    "index.html", 
+                                                    CHUNKED_HEADER));
+        std::cout << "InitWriteHandler done" << std::endl;
+
+    }
+}
+
+void SocketHolder::ProcessWrite()
+{
+
+    std::cout << "ProcessWrite" << std::endl;
+    /* to do make desition depending on state*/
+    if (true)
+    {
+        InitWriteHandler();
+        m_writeHandler->ProcessOutput();
+        if (m_writeHandler->IsDone())
+        {
+            m_procStatus = Done;
+        }
     }
 }
 
@@ -234,33 +264,34 @@ void SocketHolder::AccumulateRequest(const std::string& str)
     std::string::size_type found = str.find("\r\n\r\n");
     if (found != std::string::npos)
     {
-        m_remainAfterRequest = str.substr(found + 4);
-        InitBodyHandler();
-        m_bodyHandler->ProcessData(m_remainAfterRequest);
-        m_remainAfterRequest.clear();
-        m_procStatus = Done;
+        /*todo testing only. should be READ BODY*/
+        m_procStatus = WriteBody;
     }
     m_req_string.append(str);
 }
 
-void SocketHolder::InitBodyHandler()
-{
-    std::cout << "Check init handler" << std::endl; 
-    if (m_bodyHandler.get() == NULL)
-    {
-        std::cout << "INIT HANDLER" << std::endl;
-        Shared_ptr<IBodyHandler> sh_ptr(new UploadBodyHandler("default_path"));
-        m_bodyHandler = sh_ptr;
-    }
-}
+// void SocketHolder::InitBodyHandler()
+// {
+//     std::cout << "Check init handler" << std::endl; 
+//     if (m_bodyHandler.get() == NULL)
+//     {
+//         std::cout << "INIT HANDLER" << std::endl;
+//         Shared_ptr<IBodyHandler> sh_ptr(new UploadBodyHandler("default_path"));
+//         m_bodyHandler = sh_ptr;
+//     }
+// }
 
-void SocketHolder::HandleBody(std::string& chunkStr)
-{
-    InitBodyHandler();
+// void SocketHolder::HandleBody(std::string& chunkStr)
+// {
+//     InitBodyHandler();
 
-    std::cout << "HANDLE BODY" << std::endl;
-    m_bodyHandler->ProcessData(chunkStr);
-}
+//     std::cout << "HANDLE BODY" << std::endl;
+//     m_bodyHandler->ProcessInput(chunkStr);
+//     if (m_bodyHandler->IsDone())
+//     {
+//         m_procStatus = Done;
+//     }
+// }
 
 
 } //namespace ft

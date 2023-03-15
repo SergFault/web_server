@@ -4,6 +4,7 @@
 #include "../utils/SharedPtr.hpp"
 #include "../body_handler/IBodyHandler.hpp"
 #include "../body_handler/UploadBodyHandler.hpp"
+#include "../process/Handler.hpp"
 
 #include <netinet/in.h>
 #include <stdio.h>
@@ -48,7 +49,7 @@ public:
     void setNonBlocking();
     int getFd();
     void ProcessRead();
-    void ProcesWright();
+    void ProcessWrite();
 
 
 private:
@@ -63,7 +64,11 @@ private:
     std::string m_remainAfterRequest;
 
     void InitBodyHandler();
-    Shared_ptr<IBodyHandler> m_bodyHandler;
+    void InitWriteHandler();
+
+    // Shared_ptr<IInputHandler> m_bodyHandler;
+    Shared_ptr<IOutputHandler> m_writeHandler;
+
 
     int m_file_descriptor;
 
