@@ -155,10 +155,10 @@ void Server::Run()
         /* WRITE RESP */
         for (std::vector< Shared_ptr<SocketHolder> >::iterator it = m_rwSockets.begin(); it != m_rwSockets.end(); it++)
         {
-            if ( FD_ISSET( (*it)->getFd(), &writeFd) )
+            if (( FD_ISSET( (*it)->getFd(), &writeFd) ) && (!( FD_ISSET( (*it)->getFd(), &readFd))))
             {
                 std::cout << "RW SOCKET mark: YES-WRITE " << (*it)->getFd() << std::endl;
-            
+                (*it)->ProcessWrite();
                 //todo send
                 // std::cout << "REQ:" << std::endl << request_str << std::endl;
             
