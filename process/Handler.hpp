@@ -41,9 +41,10 @@ namespace ft
         bool m_isDone;
         std::ifstream   m_file;
         std::stringstream m_ss;
+        OutputChunkedHandler();
         
     public:
-        OutputChunkedHandler(int fd, const std::string& filename);
+        OutputChunkedHandler(int fd, const std::string& filename, const std::string& header);
 
         virtual bool IsDone() const;
 

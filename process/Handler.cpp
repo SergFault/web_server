@@ -2,13 +2,15 @@
 
 namespace ft
 {
-    OutputChunkedHandler::OutputChunkedHandler(int fd, const std::string& filename) :
+    OutputChunkedHandler::OutputChunkedHandler(int fd, const std::string& filename, const std::string& header) :
         m_fd(fd),
         m_filename(filename),
         m_isDone(false)
     {
         std::fill_n(m_buf, BUFF_SIZE, '\0');
         
+        m_ss << header;
+
         m_file.open(m_filename.c_str(), std::ios::in);
     }
 
