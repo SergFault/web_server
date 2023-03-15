@@ -164,23 +164,23 @@ namespace ft
 	}
 }   //namespace ft
 
- int main()
- {
-//     int fd = open("outfile.txt", O_CREAT | O_RDWR);
+//  int main()
+//  {
+// //     int fd = open("outfile.txt", O_CREAT | O_RDWR);
 
-	 int fd = open("outfile.txt", O_RDONLY);
+// 	 int fd = open("outfile.txt", O_RDONLY);
 
-     ft::InputChunkedHandler hndlr(fd, 1000);
+//      ft::InputChunkedHandler hndlr(fd, 1000);
 
-     while (!hndlr.IsDone())
-     {
-         hndlr.ProcessInput();
-         // sleep(5);
-     }
+//      while (!hndlr.IsDone())
+//      {
+//          hndlr.ProcessInput();
+//          // sleep(5);
+//      }
 
-	 std::cout << hndlr.GetRes();
+// 	 std::cout << hndlr.GetRes();
 
-     close(fd);
+//      close(fd);
 
-     return 0;
- }
+//      return 0;
+//  }

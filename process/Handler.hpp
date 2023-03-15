@@ -16,24 +16,15 @@ namespace ft
     {
     public:
         virtual bool IsDone() const = 0;
-<<<<<<< HEAD
 		virtual ~IDone(){};
-=======
-        virtual ~IDone(){};
->>>>>>> 65f99346b52ce2660792fcb44ea31f9357f87d87
     };
 
     class IInputHandler: public IDone
     {
     public:
         /* save */
-<<<<<<< HEAD
         virtual void ProcessInput() = 0;
 		virtual ~IInputHandler(){};
-=======
-        virtual void ProcessInput(const std::string& chunk) = 0;
-        virtual ~IInputHandler(){}
->>>>>>> 65f99346b52ce2660792fcb44ea31f9357f87d87
     };
 
     class IOutputHandler: public IDone
@@ -41,11 +32,7 @@ namespace ft
     public:
         /* send some data from file or cgi */
         virtual void ProcessOutput() = 0;
-<<<<<<< HEAD
 		virtual ~IOutputHandler(){};
-=======
-        virtual ~IOutputHandler(){};
->>>>>>> 65f99346b52ce2660792fcb44ea31f9357f87d87
     };
 
     class OutputChunkedHandler: public IOutputHandler
