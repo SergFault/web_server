@@ -1,5 +1,9 @@
 #include "Handler.hpp"
 
+#include <fcntl.h>
+#include <unistd.h>
+#include <iostream>
+
 namespace ft
 {
     OutputChunkedHandler::OutputChunkedHandler(int fd, const std::string& filename, const std::string& header) :
@@ -39,7 +43,8 @@ namespace ft
                     m_ss << "0\r\n\r\n";
                 }
             }
-            size_t cnt = send(m_fd, m_ss.str().c_str(), m_ss.str().size(), 0);
+//            size_t cnt = send(m_fd, m_ss.str().c_str(), m_ss.str().size(), 0);
+			size_t cnt = write(m_fd, m_ss.str().c_str(), m_ss.str().size());
             if (cnt < m_ss.str().size())
                 m_ss.str(m_ss.str().substr(cnt, m_ss.str().size() - cnt));
             else
@@ -48,21 +53,134 @@ namespace ft
                 m_isDone = true;
         }
     }
+
+	//-----------------------------------------------------------------------------------
+
+	InputLengthHandler::InputLengthHandler(int fd, size_t length) :
+		m_fd(fd),
+		m_length(length),
+		m_isDone(false),
+		m_counter(0)
+	{
+
+	}
+
+	void InputLengthHandler::ProcessInput()
+	{
+		std::string	buf;
+		size_t cnt;
+
+		if (!m_isDone)
+		{
+			cnt = recv(m_fd, &buf, m_length - m_counter, 0);
+			m_body << buf;
+			m_counter += cnt;
+			if (m_counter == m_length)
+				m_isDone = true;
+		}
+	}
+
+	bool InputLengthHandler::IsDone() const
+	{
+		return m_isDone;
+	}
+
+	//----------------------------------------------------------------
+
+	InputChunkedHandler::InputChunkedHandler(int fd, size_t max_length) :
+		m_fd(fd),
+		m_max_length(max_length),
+		m_isDone(false),
+		m_counter(0),
+		m_num(0),
+
+		finish(false)
+	{
+
+	}
+
+	void InputChunkedHandler::ProcessInput()
+	{
+		std::string buf;
+		std::string	body;
+		std::string tmp;
+		std::stringstream ss;
+		size_t cnt;
+		size_t pos;
+
+		if (m_num != 0 )
+		{
+//			cnt = recv(m_fd, &body, m_num, 0);
+			cnt = read(m_fd, &body, m_num);
+
+			if (m_num - cnt >= 2)
+				m_body << body;
+			else if (m_num > 2)
+				m_body << body.substr(0, body.size() - (2 - (m_num - cnt)));
+			m_num -= cnt;
+			if (m_num == 0 && finish)
+				m_isDone = true;
+		}
+		else
+		{
+//			cnt = recv(m_fd, &buf, 20, 0);
+
+
+			if ((pos = search_chunk.find("\r\n")) != std::string::npos)
+			{
+				ss << search_chunk.substr(0, pos);
+				ss >> std::hex >> m_num;
+				if (m_num == 0)
+					finish = true;
+				m_num += 2;
+				tmp = search_chunk.substr(pos + 2, search_chunk.size() - (pos - 2));
+				if (tmp.size() >= m_num)
+				{
+					m_body << tmp.substr(0, m_num - 2);
+					search_chunk = tmp.substr(m_num, tmp.size() - m_num);
+					m_num = 0;
+				}
+				else
+				{
+					m_num -= tmp.size();
+					if (m_num >= 2)
+						m_body << tmp;
+					else
+						m_body << tmp.substr(0, tmp.size() - (2 - m_num));
+					search_chunk = "";
+				}
+			}
+			else
+			{
+				cnt = read(m_fd, &buf, 20);
+				search_chunk.append(buf);
+			}
+		}
+	}
+
+	bool InputChunkedHandler::IsDone() const
+	{
+		return m_isDone;
+	}
 }   //namespace ft
 
-// int main()
-// {
-//     int fd = open("outfile.txt", O_CREAT | O_WRONLY);
+ int main()
+ {
+//     int fd = open("outfile.txt", O_CREAT | O_RDWR);
 
-//     OutputChunkedHandler hndlr(fd, "../www/default/index.html");
+	 int fd = open("outfile.txt", O_RDONLY);
 
-//     while (!hndlr.IsDone())
-//     {
-//         hndlr.ProcessOutput();
-//         // sleep(5);
-//     }
+     ft::InputChunkedHandler hndlr(fd, 1000);
 
-//     close(fd);
+     while (!hndlr.IsDone())
+     {
+         hndlr.ProcessInput();
+         // sleep(5);
+     }
 
-//     return 0;
-// }
+	 std::cout << hndlr.GetRes();
+
+     close(fd);
+
+     return 0;
+ }

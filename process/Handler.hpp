@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#define BUFF_SIZE 1024
+#define BUFF_SIZE 55
 
 namespace ft
 {
@@ -16,20 +16,23 @@ namespace ft
     {
     public:
         virtual bool IsDone() const = 0;
+		virtual ~IDone(){};
     };
 
     class IInputHandler: public IDone
     {
     public:
         /* save */
-        bool ProcessInput(const std::string& chunk);
+        virtual void ProcessInput() = 0;
+		virtual ~IInputHandler(){};
     };
 
     class IOutputHandler: public IDone
     {
     public:
         /* send some data from file or cgi */
-        bool ProcessOutput(const std::string& chunk);
+        virtual void ProcessOutput() = 0;
+		virtual ~IOutputHandler(){};
     };
 
     class OutputChunkedHandler: public IOutputHandler
@@ -48,8 +51,54 @@ namespace ft
 
         virtual bool IsDone() const;
 
-        ~OutputChunkedHandler();
+        virtual ~OutputChunkedHandler();
 
-        void ProcessOutput();
+        virtual void ProcessOutput();
     };
+
+	class InputLengthHandler: public IInputHandler
+	{
+	private:
+		size_t	m_fd;
+		size_t	m_length;
+		bool	m_isDone;
+		size_t	m_counter;
+		std::stringstream m_body;
+
+		InputLengthHandler();
+
+	public:
+		InputLengthHandler(int fd, size_t length);
+
+		virtual bool IsDone() const;
+
+		virtual ~InputLengthHandler() {};
+
+		virtual void ProcessInput();
+	};
+
+	class InputChunkedHandler: public IInputHandler
+	{
+	private:
+		size_t	m_fd;
+		size_t	m_max_length;
+		bool	m_isDone;
+		size_t	m_counter;
+		size_t 	m_num;
+		std::stringstream m_body;
+
+		std::string search_chunk;
+		bool finish;
+
+		InputChunkedHandler();
+
+	public:
+		InputChunkedHandler(int fd, size_t max_length);
+
+		virtual bool IsDone() const;
+		virtual ~InputChunkedHandler() {};
+		virtual void ProcessInput();
+
+		std::string GetRes() {return m_body.str();}
+	};
 }   //namespace ft
