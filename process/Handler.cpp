@@ -75,7 +75,11 @@ namespace ft
             std::fill_n(buf, BUFF_SIZE, '\0');
 			cnt = recv(m_fd, buf, (m_length - m_counter) < (BUFF_SIZE - 1) ? m_length - m_counter : (BUFF_SIZE - 1), 0);
 //            cnt = read(m_fd, buf, (m_length - m_counter) < (BUFF_SIZE - 1) ? m_length - m_counter : (BUFF_SIZE - 1));
-            m_body << buf;
+            for (size_t i = 0; i < cnt; ++i)
+            {
+                m_body.put(buf[i]);
+                //m_body << buf;
+            }
             m_counter += cnt;
             if (m_counter == m_length)
                 m_isDone = true;
