@@ -12,7 +12,10 @@
 namespace ft
 {
 
-SocketHolder::SocketHolder(int desc): m_file_descriptor(desc), m_hostSockAddrLen(0)
+SocketHolder::SocketHolder(int desc, const std::vector<CfgCtx>& ctxs) :
+                                        m_file_descriptor(desc),
+                                        m_configs(ctxs),
+                                        m_hostSockAddrLen(0)
 {
     m_procStatus = ReadRequest;
     memset(&m_hostSockAdd, 0, sizeof(m_hostSockAdd));
@@ -43,7 +46,9 @@ void SocketHolder::setNonBlocking()
     }
 }
 
-SocketHolder::SocketHolder(int domain, int type, int protocol): m_procStatus(ReadRequest)
+SocketHolder::SocketHolder(int domain, int type, int protocol, const std::vector<CfgCtx>& ctxs) :
+                                                                        m_procStatus(ReadRequest),
+                                                                        m_configs(ctxs)
 {
     m_file_descriptor = ::socket(domain, type,  protocol);
     memset(&m_hostSockAdd, 0, sizeof(m_hostSockAdd));
@@ -226,7 +231,7 @@ Shared_ptr<SocketHolder> SocketHolder::accept()
     // std::cout << res << std::endl;
 
     // SocketHolder sock(res);
-    Shared_ptr<SocketHolder> sock(new SocketHolder(res));
+    Shared_ptr<SocketHolder> sock(new SocketHolder(res, m_configs));
 
     std::cout << "Status::: " << std::endl;
 
@@ -262,12 +267,15 @@ SocketHolder::~SocketHolder()
 void SocketHolder::AccumulateRequest(const std::string& str)
 {
     std::string::size_type found = str.find("\r\n\r\n");
+    m_req_string.append(str);
+
+    /* if req header done reading */
     if (found != std::string::npos)
     {
         /*todo testing only. should be READ BODY*/
+        m_reqHeader = Shared_ptr<HttpReqHeader>(new HttpReqHeader(m_req_string));
         m_procStatus = WriteBody;
     }
-    m_req_string.append(str);
 }
 
 // void SocketHolder::InitBodyHandler()

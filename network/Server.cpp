@@ -49,7 +49,7 @@ void Server::initialize(){
         try
         {
             // Shared_ptr<SocketHolder> sh_p(new SocketHolder(AF_INET, SOCK_STREAM, 0));
-            socket_ptr = Shared_ptr<SocketHolder>(new SocketHolder(AF_INET, SOCK_STREAM, 0));
+            socket_ptr = Shared_ptr<SocketHolder>(new SocketHolder(AF_INET, SOCK_STREAM, 0, m_configs));
         }
         catch(const std::exception &ex)
         {
@@ -147,7 +147,7 @@ void Server::Run()
             {
                 std::cout << "RW SOCKET mark YES-READ " << (*it)->getFd() << std::endl;
             
-                (*it)->ProcessRead();            
+                (*it)->ProcessRead();
             }
             std::cout << "RW SOCKET mark NO-READ " << (*it)->getFd() << std::endl;
         }
@@ -190,7 +190,7 @@ void Server::Run()
         }
 
         std::cout << "<<<<<<<" << std::endl;
-        usleep(2000000);
+        // usleep(2000000);
     }
 }
 }

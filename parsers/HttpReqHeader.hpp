@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../parsing/CfgCtx.hpp"
+
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -103,6 +105,8 @@ namespace ft
         HttpReqHeader() {};
         HttpReqHeader(const std::string& request);
         ~HttpReqHeader() {};
+
+        bool isValid(const std::vector<CfgCtx>& configs);
 
         int parse_uri(const std::string& uri);
         request_headers get_req_headers();

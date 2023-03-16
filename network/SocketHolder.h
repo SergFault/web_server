@@ -5,6 +5,8 @@
 #include "../body_handler/IBodyHandler.hpp"
 #include "../body_handler/UploadBodyHandler.hpp"
 #include "../process/Handler.hpp"
+#include "../parsers/HttpReqHeader.hpp"
+#include "../parsing/CfgCtx.hpp"
 
 #include <netinet/in.h>
 #include <stdio.h>
@@ -15,6 +17,7 @@
 #include <unistd.h>
 #include <stdexcept>
 #include <sstream>
+#include <vector>
 #include <unistd.h>
 
 #define PORT 8080
@@ -36,8 +39,8 @@ enum ProcessStatus
 class SocketHolder
 {
 public:
-    SocketHolder(int domain, int type, int protocol);
-    SocketHolder(int desc);
+    SocketHolder(int domain, int type, int protocol, const std::vector<CfgCtx>& ctxs);
+    SocketHolder(int desc, const std::vector<CfgCtx>& ctxs);
 
     ~SocketHolder();
     void bind(const struct sockaddr_in *addr);
@@ -63,6 +66,9 @@ private:
     std::string m_req_string;
     std::string m_remainAfterRequest;
 
+    /* parsed req header*/
+    Shared_ptr<HttpReqHeader> m_reqHeader;
+
     void InitBodyHandler();
     void InitWriteHandler();
 
@@ -77,6 +83,9 @@ private:
     uint32_t m_hostSockAddrLen;
 
     ProcessStatus m_procStatus;
+
+    /* configs */
+    const std::vector<CfgCtx>& m_configs;
 
     char m_buffer[1024];
 };
