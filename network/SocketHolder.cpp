@@ -196,7 +196,7 @@ void SocketHolder::InitWriteHandler()
     {
         std::cout << "InitWriteHandler" << std::endl;
         m_writeHandler = Shared_ptr<IOutputHandler>(new OutputChunkedHandler(m_file_descriptor,
-                                                    "index.html", 
+                                                    "../www/default/index.html",
                                                     CHUNKED_HEADER));
         std::cout << "InitWriteHandler done" << std::endl;
 

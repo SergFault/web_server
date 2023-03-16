@@ -44,7 +44,7 @@ namespace ft
         bool m_isDone;
         std::ifstream   m_file;
         std::stringstream m_ss;
-        OutputChunkedHandler();
+        OutputChunkedHandler(){};
         
     public:
         OutputChunkedHandler(int fd, const std::string& filename, const std::string& header);
@@ -65,7 +65,7 @@ namespace ft
 		size_t	m_counter;
 		std::stringstream m_body;
 
-		InputLengthHandler();
+		InputLengthHandler(){};
 
 	public:
 		InputLengthHandler(int fd, size_t length);
@@ -75,6 +75,8 @@ namespace ft
 		virtual ~InputLengthHandler() {};
 
 		virtual void ProcessInput();
+
+        std::string GetRes() {return m_body.str();}
 	};
 
 	class InputChunkedHandler: public IInputHandler
@@ -90,7 +92,7 @@ namespace ft
 		std::string search_chunk;
 		bool finish;
 
-		InputChunkedHandler();
+		InputChunkedHandler(){};
 
 	public:
 		InputChunkedHandler(int fd, size_t max_length);
