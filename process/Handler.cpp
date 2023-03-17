@@ -56,13 +56,14 @@ namespace ft
 
     //-----------------------------------------------------------------------------------
 
-    InputLengthHandler::InputLengthHandler(int fd, size_t length) :
+    InputLengthHandler::InputLengthHandler(int fd, size_t length, const std::string& remain) :
             m_fd(fd),
             m_length(length),
             m_isDone(false),
             m_counter(0)
     {
-
+		m_counter += remain.size();
+		m_body.write(remain.c_str(), m_counter);
     }
 
     void InputLengthHandler::ProcessInput()
@@ -74,6 +75,10 @@ namespace ft
         {
             std::fill_n(buf, BUFF_SIZE, '\0');
 			cnt = recv(m_fd, buf, (m_length - m_counter) < (BUFF_SIZE - 1) ? m_length - m_counter : (BUFF_SIZE - 1), 0);
+			if (cnt == -1)
+			{
+				std::cout << "here";
+			}
 //            cnt = read(m_fd, buf, (m_length - m_counter) < (BUFF_SIZE - 1) ? m_length - m_counter : (BUFF_SIZE - 1));
             for (size_t i = 0; i < cnt; ++i)
             {
@@ -81,6 +86,7 @@ namespace ft
                 //m_body << buf;
             }
             m_counter += cnt;
+			m_str = m_body.str();
             if (m_counter == m_length)
                 m_isDone = true;
         }

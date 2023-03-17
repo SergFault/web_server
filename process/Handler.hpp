@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#define BUFF_SIZE 55
+#define BUFF_SIZE 1024
 
 namespace ft
 {
@@ -65,10 +65,12 @@ namespace ft
 		size_t	m_counter;
 		std::stringstream m_body;
 
+		std::string m_str; //debug
+
 		InputLengthHandler(){};
 
 	public:
-		InputLengthHandler(int fd, size_t length);
+		InputLengthHandler(int fd, size_t length, const std::string& remain);
 
 		virtual bool IsDone() const;
 
