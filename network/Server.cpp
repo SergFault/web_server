@@ -128,7 +128,7 @@ void Server::Run()
         {
             if ( FD_ISSET( (*it)->getFd(), &readFd) )
             {
-                std::cout << "Listener FD mark YES-READ " << (*it)->getFd() << std::endl;
+                // std::cout << "Listener FD mark YES-READ " << (*it)->getFd() << std::endl;
                 Shared_ptr<SocketHolder> sh_h = (*it)->accept();
                 if (sh_h->getFd() != -1)
                 {
@@ -137,7 +137,7 @@ void Server::Run()
                     m_rwSockets.push_back(sh_h);
                 }
             }
-            std::cout << "Listener FD mark NO-READ " << (*it)->getFd() << std::endl;
+            // std::cout << "Listener FD mark NO-READ " << (*it)->getFd() << std::endl;
         }
 
         /* READ REQ */
@@ -145,11 +145,11 @@ void Server::Run()
         {
             if ( FD_ISSET( (*it)->getFd(), &readFd) )
             {
-                std::cout << "RW SOCKET mark YES-READ " << (*it)->getFd() << std::endl;
+                // std::cout << "RW SOCKET mark YES-READ " << (*it)->getFd() << std::endl;
             
                 (*it)->ProcessRead();
             }
-            std::cout << "RW SOCKET mark NO-READ " << (*it)->getFd() << std::endl;
+            // std::cout << "RW SOCKET mark NO-READ " << (*it)->getFd() << std::endl;
         }
 
         /* WRITE RESP */
@@ -157,14 +157,14 @@ void Server::Run()
         {
             if (( FD_ISSET( (*it)->getFd(), &writeFd) ) && (!( FD_ISSET( (*it)->getFd(), &readFd))))
             {
-                std::cout << "RW SOCKET mark: YES-WRITE " << (*it)->getFd() << std::endl;
+                // std::cout << "RW SOCKET mark: YES-WRITE " << (*it)->getFd() << std::endl;
                 (*it)->ProcessWrite();
                 //todo send
                 // std::cout << "REQ:" << std::endl << request_str << std::endl;
             
             }
             // it->sendFromRespHandler();
-            std::cout << "RW SOCKET mark: NO-WRITE" << (*it)->getFd() << std::endl;
+            // std::cout << "RW SOCKET mark: NO-WRITE" << (*it)->getFd() << std::endl;
         }
 
         /* REMOVE DONE FD */

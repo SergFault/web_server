@@ -16,6 +16,12 @@ namespace ft
         m_ss << header;
 
         m_file.open(m_filename.c_str(), std::ios::in);
+
+        if (!m_file.is_open())
+        {
+            throw std::runtime_error("FILE NOT OPENED");
+        }
+
     }
 
     bool OutputChunkedHandler::IsDone() const
@@ -26,6 +32,7 @@ namespace ft
     OutputChunkedHandler::~OutputChunkedHandler()
     {
         m_file.close();
+        std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<CLOSED" << std::endl;
     }
 
     void OutputChunkedHandler::ProcessOutput()
@@ -34,6 +41,8 @@ namespace ft
         {
             if (m_ss.str().size() == 0)
             {
+                std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<WRITE" << std::endl;
+
                 std::fill_n(m_buf, BUFF_SIZE, '\0');
                 m_file.read(m_buf, BUFF_SIZE - 1);
                 m_ss << std::hex << strlen(m_buf);
