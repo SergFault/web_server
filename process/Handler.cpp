@@ -17,6 +17,8 @@ namespace ft
 
         m_file.open(m_filename.c_str(), std::ios::in);
 
+		std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<OPENED" << std::endl;
+
         if (!m_file.is_open())
         {
             throw std::runtime_error("FILE NOT OPENED");
@@ -72,7 +74,8 @@ namespace ft
             m_counter(0)
     {
 		m_counter += remain.size();
-		m_body.write(remain.c_str(), m_counter);
+		std::cout << "{" << remain.size() << "}" << std::endl;
+		m_body << remain;
     }
 
     void InputLengthHandler::ProcessInput()
@@ -97,7 +100,10 @@ namespace ft
             m_counter += cnt;
 			m_str = m_body.str();
             if (m_counter == m_length)
-                m_isDone = true;
+			{
+				std::cout << "BODYDONE" << std::endl;
+				m_isDone = true;
+			}
         }
     }
 
@@ -133,7 +139,7 @@ namespace ft
         {
 //			cnt = recv(m_fd, &body, m_num, 0);
             std::fill_n(buf, BUFF_SIZE, '\0');
-            cnt = read(m_fd, buf, m_num < (BUFF_SIZE - 1) ? m_num : (BUFF_SIZE - 1));
+            cnt = recv(m_fd, buf, m_num < (BUFF_SIZE - 1) ? m_num : (BUFF_SIZE - 1), 0);
 
             if (m_num - cnt >= 2)
                 m_body << buf;
@@ -144,7 +150,10 @@ namespace ft
             }
             m_num -= cnt;
             if (m_num == 0 && finish)
+			{
+				std::cout << "BODYDONE" << std::endl;
                 m_isDone = true;
+			}
         }
         else
         {
@@ -185,7 +194,10 @@ namespace ft
             }
         }
         if (m_num == 0 && finish)
+		{
+			std::cout << "BODYDONE" << std::endl;
             m_isDone = true;
+		}
     }
 
     bool InputChunkedHandler::IsDone() const

@@ -154,7 +154,7 @@ void SocketHolder::SetNextState()
             break;
         case (WriteBody):
             std::cout << "now STEP: WriteRequest" << std::endl;
-            m_procStatus = WriteRequest;
+            m_procStatus = Done;
             break;
         case (Done):
             std::cout << "now STEP: Done" << std::endl;
@@ -166,7 +166,7 @@ void SocketHolder::SetNextState()
 void SocketHolder::ProcessRead()
 {
 	std::string resChunk;
-	if (m_procStatus != ReadBody)
+	if (m_procStatus == ReadRequest)
 	{
     int res = recv(m_file_descriptor, m_buffer, BUFFER_SIZE - 1, 0);
     m_buffer[BUFFER_SIZE - 1] = '\0';
@@ -177,6 +177,8 @@ void SocketHolder::ProcessRead()
         perror("FAILED");
         throw std::runtime_error("ProcessRead FAILED");
     }
+
+	std::cout << "=========================================" << m_buffer;
 
     m_buffer[res] = '\0';
     /*std::string*/ resChunk = m_buffer;//(m_buffer);
@@ -190,7 +192,7 @@ void SocketHolder::ProcessRead()
         AccumulateRequest(resChunk);
         break;
     case ReadBody:
-		HandleBody();;
+		HandleBody();
         break;
 
     default:
@@ -315,7 +317,7 @@ void SocketHolder::AccumulateRequest(const std::string& str)
 			 file.put(s[i]);
 		 }
 		 file.close();
-		 m_procStatus = WriteBody;//
+		 m_procStatus = WriteRequest;//
      }
  }
 

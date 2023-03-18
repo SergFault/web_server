@@ -19,4 +19,4 @@ add_executable(${EXEC_NAME} main.cpp
 # target_compile_options(server PRIVATE "-fsanitize=address")
 # target_link_options(server PRIVATE "-fsanitize=address")
 
-target_compile_options(server PUBLIC "-std=c++98")
+target_compile_options(server PUBLIC "-std=c++98" "-g")

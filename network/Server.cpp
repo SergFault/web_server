@@ -158,7 +158,11 @@ void Server::Run()
             if (( FD_ISSET( (*it)->getFd(), &writeFd) ) && (!( FD_ISSET( (*it)->getFd(), &readFd))))
             {
                 // std::cout << "RW SOCKET mark: YES-WRITE " << (*it)->getFd() << std::endl;
-                (*it)->ProcessWrite();
+				if ((*it)->getStatus() == WriteRequest)
+				{
+					(*it)->ProcessWrite();
+					std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<WRITE" << std::endl;
+				}
                 //todo send
                 // std::cout << "REQ:" << std::endl << request_str << std::endl;
             

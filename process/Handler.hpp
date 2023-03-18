@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#define BUFF_SIZE 1024
+#define BUFF_SIZE 102400
 
 namespace ft
 {
