@@ -40,7 +40,9 @@ void SocketHolder::setNonBlocking()
         perror("falgs error: ");
         throw std::runtime_error("Can`t get fd flags \n");
     }
-    if (fcntl(m_file_descriptor, F_SETFL, flags | O_NONBLOCK) < 0)
+    
+    flags |= O_NONBLOCK;
+    if (fcntl(m_file_descriptor, F_SETFL, flags) < 0)
     {
         throw std::runtime_error("Can`t set nonblocking option \n");
     }
@@ -216,6 +218,7 @@ void SocketHolder::ProcessWrite()
         m_writeHandler->ProcessOutput();
         if (m_writeHandler->IsDone())
         {
+            std::cout << "  socket #" << m_file_descriptor << "ProcessWrite" << "status = Done" << std::endl;
             m_procStatus = Done;
         }
     }
@@ -296,25 +299,26 @@ void SocketHolder::AccumulateRequest(const std::string& str)
         {
 		 m_bodyHandler = Shared_ptr<IInputHandler>(new InputLengthHandler
 			 (m_file_descriptor, m_reqHeader->get_req_headers().cont_length, m_remainAfterRequest));
-        //  std::cout << "<<<<<<<<INIT BODYHANDLER InputLengthHandler" << std::endl;
+         std::cout << "  socket #" << m_file_descriptor << "<<<<<<<<INIT BODYHANDLER InputLengthHandler" << std::endl;
         }
         else if((*m_reqHeader).get_req_headers().cont_length == 0)
         {
             if ((*m_reqHeader).get_req_headers().is_chunked)
             {
-                // std::cout << "<<<<<<<<INIT BODYHANDLER InputLengthHandler" << std::endl;
+                std::cout << "  socket #" << m_file_descriptor << "<<<<<<<<INIT BODYHANDLER InputLengthHandler" << std::endl;
                 m_bodyHandler = Shared_ptr<IInputHandler>(new InputChunkedHandler
 			        (m_file_descriptor, 1000000));
             }
             else
             {
                 // std::cout << "<<<<<<SET STATUS DONE" << std::endl;
+                std::cout << "  socket #" << m_file_descriptor << "status = Done" << std::endl;
                 m_procStatus = Done;
             }
         }
         else
         {
-            // std::cout << "<<<<<<SET STATUS DONE" << std::endl;
+            std::cout << "  socket #" << m_file_descriptor << "status = Done" << std::endl;
             m_procStatus = Done;
         }
      }

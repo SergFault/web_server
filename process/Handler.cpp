@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <iostream>
+#include <exception>
 
 namespace ft
 {
@@ -66,47 +67,51 @@ namespace ft
     //-----------------------------------------------------------------------------------
 
     InputLengthHandler::InputLengthHandler(int fd, size_t length, const std::string& remain) :
-            m_fd(fd),
-            m_length(length),
-            m_isDone(false),
-            m_counter(0)
-    {
-		m_counter += remain.size();
-		m_body.write(remain.c_str(), m_counter);
-    }
-
-    void InputLengthHandler::ProcessInput()
-    {
-        char    buf[BUFF_SIZE];
-        size_t cnt;
-
-        if (!m_isDone)
-        {
-            std::fill_n(buf, BUFF_SIZE, '\0');
-			cnt = recv(m_fd, buf, (m_length - m_counter) < (BUFF_SIZE - 1) ? m_length - m_counter : (BUFF_SIZE - 1), 0);
-			if (cnt == -1)
-			{
-				// std::cout << "here";
-			}
-//            cnt = read(m_fd, buf, (m_length - m_counter) < (BUFF_SIZE - 1) ? m_length - m_counter : (BUFF_SIZE - 1));
-            for (size_t i = 0; i < cnt; ++i)
-            {
-                m_body.put(buf[i]);
-                //m_body << buf;
-            }
-            m_counter += cnt;
-			m_str = m_body.str();
-            if (m_counter == m_length)
-                m_isDone = true;
-        }
-    }
-
+                                                                m_fd(fd),
+                                                                m_lengthLeft(length),
+                                                                m_body(remain),
+                                                                m_isDone(false){ }
+    
     bool InputLengthHandler::IsDone() const
     {
         return m_isDone;
     }
 
-    //----------------------------------------------------------------
+    void InputLengthHandler::ProcessInput()
+    {
+            int readRes;
+            size_t bufferSize = 1024;
+            char buffer[bufferSize];
+
+            int readSize = bufferSize > m_lengthLeft ?  m_lengthLeft : bufferSize ;
+            readRes = recv(m_fd, buffer, readSize, 0);
+            if (readRes < 0)
+            {
+                perror("error");
+                throw std::runtime_error("InputLengthHandler receive error");
+            }
+
+            std::cout << "read: " << readRes << std::endl;
+            std::cout << "m_lengthLeft: " << m_lengthLeft << std::endl;
+
+            m_lengthLeft -= readRes;
+
+            m_body.write(buffer, readRes);
+
+            if (m_lengthLeft == 0)
+            {
+                m_isDone = true;
+            }
+    }
+
+    std::string InputLengthHandler::GetRes()
+    {
+        return m_body.str();
+    }
+
+
+
+    // ----------------------------------------------------------------
 
     InputChunkedHandler::InputChunkedHandler(int fd, size_t max_length) :
             m_fd(fd),
@@ -193,24 +198,3 @@ namespace ft
         return m_isDone;
     }
 }   //namespace ft
-
-//  int main()
-//  {
-// //     int fd = open("outfile.txt", O_CREAT | O_RDWR);
-
-// 	 int fd = open("outfile.txt", O_RDONLY);
-
-//      ft::InputChunkedHandler hndlr(fd, 1000);
-
-//      while (!hndlr.IsDone())
-//      {
-//          hndlr.ProcessInput();
-//          // sleep(5);
-//      }
-
-// 	 std::cout << hndlr.GetRes();
-
-//      close(fd);
-
-//      return 0;
-//  }

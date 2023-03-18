@@ -128,6 +128,7 @@ void Server::Run()
         {
             if ( FD_ISSET( (*it)->getFd(), &readFd) )
             {
+                std::cout << "  socket #" << (*it)->getFd() << "ACCEPTED" << std::endl;
                 Shared_ptr<SocketHolder> sh_h = (*it)->accept();
                 if (sh_h->getFd() != -1)
                 {

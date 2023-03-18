@@ -58,17 +58,6 @@ namespace ft
 
 	class InputLengthHandler: public IInputHandler
 	{
-	private:
-		size_t	m_fd;
-		size_t	m_length;
-		bool	m_isDone;
-		size_t	m_counter;
-		std::stringstream m_body;
-
-		std::string m_str; //debug
-
-		InputLengthHandler(){};
-
 	public:
 		InputLengthHandler(int fd, size_t length, const std::string& remain);
 
@@ -78,7 +67,18 @@ namespace ft
 
 		virtual void ProcessInput();
 
-        std::string GetRes() {return m_body.str();}
+        std::string GetRes();
+
+	private:
+		size_t	m_fd;
+		size_t	m_lengthLeft;
+		bool	m_isDone;
+		size_t	m_counter;
+		std::stringstream m_body;
+
+		std::string m_str; //debug
+
+		InputLengthHandler(){};
 	};
 
 	class InputChunkedHandler: public IInputHandler
