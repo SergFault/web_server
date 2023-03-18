@@ -32,7 +32,7 @@ namespace ft
     OutputChunkedHandler::~OutputChunkedHandler()
     {
         m_file.close();
-        std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<CLOSED" << std::endl;
+        // std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<CLOSED" << std::endl;
     }
 
     void OutputChunkedHandler::ProcessOutput()
@@ -41,7 +41,7 @@ namespace ft
         {
             if (m_ss.str().size() == 0)
             {
-                std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<WRITE" << std::endl;
+                // std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<WRITE" << std::endl;
 
                 std::fill_n(m_buf, BUFF_SIZE, '\0');
                 m_file.read(m_buf, BUFF_SIZE - 1);
@@ -86,7 +86,7 @@ namespace ft
 			cnt = recv(m_fd, buf, (m_length - m_counter) < (BUFF_SIZE - 1) ? m_length - m_counter : (BUFF_SIZE - 1), 0);
 			if (cnt == -1)
 			{
-				std::cout << "here";
+				// std::cout << "here";
 			}
 //            cnt = read(m_fd, buf, (m_length - m_counter) < (BUFF_SIZE - 1) ? m_length - m_counter : (BUFF_SIZE - 1));
             for (size_t i = 0; i < cnt; ++i)

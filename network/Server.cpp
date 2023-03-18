@@ -43,7 +43,7 @@ void Server::initialize(){
         server_address.sin_port = htons(port);
 
         /* Socket creation */
-        std::cout << "There" << std::endl;
+        // std::cout << "There" << std::endl;
         Shared_ptr<SocketHolder> socket_ptr;
 
         try
@@ -57,7 +57,7 @@ void Server::initialize(){
             throw std::exception();
         }
 
-        std::cout << "There2" << std::endl;
+        // std::cout << "There2" << std::endl;
 
         try
         {
@@ -128,11 +128,10 @@ void Server::Run()
         {
             if ( FD_ISSET( (*it)->getFd(), &readFd) )
             {
-                // std::cout << "Listener FD mark YES-READ " << (*it)->getFd() << std::endl;
                 Shared_ptr<SocketHolder> sh_h = (*it)->accept();
                 if (sh_h->getFd() != -1)
                 {
-                    std::cout << "Accepted " << sh_h->getFd() << "Status" << sh_h->getStatus() << std::endl;
+                    // std::cout << "Accepted " << sh_h->getFd() << "Status" << sh_h->getStatus() << std::endl;
                     sh_h->setNonBlocking();
                     m_rwSockets.push_back(sh_h);
                 }
@@ -145,6 +144,7 @@ void Server::Run()
         {
             if ( FD_ISSET( (*it)->getFd(), &readFd) )
             {
+                std::cout << "socket #" << (*it)->getFd() << " SELECT READ" << std::endl;
                 // std::cout << "RW SOCKET mark YES-READ " << (*it)->getFd() << std::endl;
             
                 (*it)->ProcessRead();
@@ -155,10 +155,14 @@ void Server::Run()
         /* WRITE RESP */
         for (std::vector< Shared_ptr<SocketHolder> >::iterator it = m_rwSockets.begin(); it != m_rwSockets.end(); it++)
         {
-            if (( FD_ISSET( (*it)->getFd(), &writeFd) ) && (!( FD_ISSET( (*it)->getFd(), &readFd))))
+            if (( FD_ISSET( (*it)->getFd(), &writeFd) ) &&  ((*it)->getStatus() == WriteRequest))
             {
+                std::cout << "socket #" << (*it)->getFd() << " SELECT WRITE" << std::endl;
                 // std::cout << "RW SOCKET mark: YES-WRITE " << (*it)->getFd() << std::endl;
+                
                 (*it)->ProcessWrite();
+
+                // it = m_rwSockets.erase(it);
                 //todo send
                 // std::cout << "REQ:" << std::endl << request_str << std::endl;
             
@@ -172,10 +176,10 @@ void Server::Run()
         {
             if ((*it)->getStatus() == Done)
             {
-                std::cout << "socket: " << (*it)->getFd() << " is DONE! DELETING HIM!" << std::endl;
+                std::cout << "socket #" << (*it)->getFd() << " SELECT DELETE" << std::endl;
 
                 // it++;
-                std::cout << "ERASE iterator at " << (*it)->getFd() << std::endl;
+                // std::cout << "ERASE iterator at " << (*it)->getFd() << std::endl;
 
                 it = m_rwSockets.erase(it);
 
@@ -189,7 +193,7 @@ void Server::Run()
             // it->sendFromRespHandler();
         }
 
-        std::cout << "<<<<<<<" << std::endl;
+        // std::cout << "<<<<<<<" << std::endl;
         // usleep(2000000);
     }
 }

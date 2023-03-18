@@ -22,11 +22,11 @@ void GetHandler::ProcessData(std::string &str)
 
 bool GetHandler::GetData(std::string &str)
 {
-    std::cout << "HEADER APPENDING" << std::endl;
+    // std::cout << "HEADER APPENDING" << std::endl;
 
     str.append(HEADER_OK);
     
-    std::cout << "HEADER APPENDED" << std::endl;
+    // std::cout << "HEADER APPENDED" << std::endl;
      if (!(m_stream >> str))
      {
         std::cerr << "Error reading file" << std::endl;

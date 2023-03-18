@@ -242,11 +242,4 @@ namespace ft
 //     std::cout << res.port << std::endl;
 //     std::cout << res.cont_length << std::endl;
 //     std::cout << res.content_type << std::endl;
-//     std::cout << res.keep_alive << std::endl;
-//     std::cout << res.chunked << std::endl;
-//     std::cout << res.req_folder << std::endl;
-//     std::cout << res.rel_path << std::endl;
-
-
-//     return 0;
-// }
+//     std::cout << res.keep_alive << std::endl;cont_length

@@ -30,10 +30,8 @@ enum ProcessStatus
 {
     ReadRequest,
     ReadBody,
-    ReadDone,
-    WriteBody,
     WriteRequest,
-    Done,
+    Done
 };
 
 class SocketHolder
@@ -57,7 +55,7 @@ public:
 
 private:
     SocketHolder();
-    void SetNextState();
+    // void SetNextState();
     void AccumulateRequest(const std::string& reqChunk);
     void HandleBody(void);
     // bool m_req_done = false;

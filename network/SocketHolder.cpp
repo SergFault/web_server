@@ -132,90 +132,83 @@ std::string SocketHolder::read()
     return std::string(buffer);
 }
 
-void SocketHolder::SetNextState()
-{
-    switch (m_procStatus)
-    {
-        case (ReadRequest):
-            std::cout << "now STEP: ReadBody" << std::endl;
-            m_procStatus = ReadBody;
-            break;
-        case (ReadBody):
-            std::cout << "now STEP: ReadDone" << std::endl;
-            m_procStatus = ReadDone;
-            break;
-        case (ReadDone):
-            std::cout << "now STEP: WriteRequest" << std::endl;
-            m_procStatus = WriteRequest;
-            break;
-        case (WriteRequest):
-            std::cout << "now STEP: WriteBody" << std::endl;
-            m_procStatus = WriteBody;
-            break;
-        case (WriteBody):
-            std::cout << "now STEP: WriteRequest" << std::endl;
-            m_procStatus = WriteRequest;
-            break;
-        case (Done):
-            std::cout << "now STEP: Done" << std::endl;
-            break;
-    }
+// void SocketHolder::SetNextState()
+// {
+//     switch (m_procStatus)
+//     {
+//         case (ReadRequest):
+//             std::cout << "now STEP: ReadBody" << std::endl;
+//             m_procStatus = ReadBody;
+//             break;
+//         case (ReadBody):
+//             std::cout << "now STEP: ReadDone" << std::endl;
+//             m_procStatus = ReadDone;
+//             break;
+//         case (ReadDone):
+//             std::cout << "now STEP: WriteRequest" << std::endl;
+//             m_procStatus = WriteRequest;
+//             break;
+//         case (WriteRequest):
+//             std::cout << "now STEP: WriteBody" << std::endl;
+//             m_procStatus = WriteBody;
+//             break;
+//         case (WriteBody):
+//             std::cout << "now STEP: WriteRequest" << std::endl;
+//             m_procStatus = WriteRequest;
+//             break;
+//         case (Done):
+//             std::cout << "now STEP: Done" << std::endl;
+//             break;
+//     }
 
-}
+// }
 
 void SocketHolder::ProcessRead()
 {
 	std::string resChunk;
-	if (m_procStatus != ReadBody)
-	{
+
     int res = recv(m_file_descriptor, m_buffer, BUFFER_SIZE - 1, 0);
     m_buffer[BUFFER_SIZE - 1] = '\0';
 
     if (res < 0)
     {
-        std::cout << m_file_descriptor << std::endl;
+        // std::cout << m_file_descriptor << std::endl;
         perror("FAILED");
         throw std::runtime_error("ProcessRead FAILED");
     }
 
     m_buffer[res] = '\0';
     /*std::string*/ resChunk = m_buffer;//(m_buffer);
-
-    //todo debug
-    std::cout << "procStat" << m_procStatus << std::endl;
-	}
-    switch (m_procStatus)
+	
+    if (m_procStatus == ReadRequest)
     {
-    case ReadRequest:
+        std::cout << "  socket #" << m_file_descriptor << " AccumulateRequest" << std::endl;
         AccumulateRequest(resChunk);
-        break;
-    case ReadBody:
-		HandleBody();;
-        break;
-
-    default:
-
-        break;
     }
+    if (m_procStatus == ReadBody)
+    {
+        std::cout << "  socket #" << m_file_descriptor << " HandleBody" << std::endl;
+		HandleBody();
+    }
+
 }
 
 void SocketHolder::InitWriteHandler()
 {
     if (m_writeHandler.get() == NULL)
     {
-        std::cout << "InitWriteHandler" << std::endl;
+        // std::cout << "InitWriteHandler" << std::endl;
         m_writeHandler = Shared_ptr<IOutputHandler>(new OutputChunkedHandler(m_file_descriptor,
                                                     "../www/default/index.html",
                                                     CHUNKED_HEADER));
-        std::cout << "InitWriteHandler done" << std::endl;
-
+        // std::cout << "InitWriteHandler done" << std::endl;
     }
 }
 
 void SocketHolder::ProcessWrite()
 {
 
-    std::cout << "ProcessWrite" << m_file_descriptor << std::endl;
+    // std::cout << "ProcessWrite" << m_file_descriptor << std::endl;
     /* to do make desition depending on state*/
     if (true)
     {
@@ -237,7 +230,7 @@ Shared_ptr<SocketHolder> SocketHolder::accept()
     // SocketHolder sock(res);
     Shared_ptr<SocketHolder> sock(new SocketHolder(res, m_configs));
 
-    std::cout << "Status::: " << std::endl;
+    // std::cout << "Status::: " << std::endl;
 
     /* todo debug */
     if (sock->getFd() != -1)
@@ -245,7 +238,7 @@ Shared_ptr<SocketHolder> SocketHolder::accept()
         std::cout << "NEW SOCKET ACCEPTED" << std::endl;
         std::cout << "  Host Address:" << inet_ntoa(reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)->sin_addr) << std::endl;
         std::cout << "  FD:" << sock->getFd() << std::endl;
-        std::cout << "  Host Port:" << reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)->sin_port << std::endl;
+        std::cout << "  Host Port:" << reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)->sin_port << std::endl << std::endl;
     }
     // std::cout << reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)-> << std::endl;
 
@@ -258,7 +251,7 @@ SocketHolder::~SocketHolder()
 
     std::cout << std::endl << "<<<<<<<socket destroyed " << m_file_descriptor << std::endl;
     std::cout << "          m_req_string:" <<  m_req_string << std::endl;
-    std::cout << "          m_remainAfterRequest:" << m_remainAfterRequest << std::endl;
+    std::cout << "          m_remainAfterRequest:" << m_remainAfterRequest << std::endl << std::endl;
 
     // std::cout << "free " << m_file_descriptor << " objc " << *m_obj_counter <<  std::endl;
     if (m_file_descriptor != -1)
@@ -281,21 +274,49 @@ void SocketHolder::AccumulateRequest(const std::string& str)
         /*todo testing only. should be READ BODY*/
         m_reqHeader = Shared_ptr<HttpReqHeader>(new HttpReqHeader(m_req_string));
 //        m_procStatus = WriteBody;
+
 		if (m_reqHeader->get_req_headers().method == "POST")
+        {
 			m_procStatus = ReadBody;
-		else
-			m_procStatus = Done;
+            InitBodyHandler();
+        }
+		else if (m_reqHeader->get_req_headers().method == "GET")
+        {
+			m_procStatus = WriteRequest;
+        }
     }
 }
 
  void SocketHolder::InitBodyHandler()
  {
-     std::cout << "Check init handler" << std::endl;
+    //   std::cout << "<<<<<<<<INIT BODYHANDLER" << std::endl;
      if (m_bodyHandler.get() == NULL)
      {
-         std::cout << "INIT HANDLER" << std::endl;
+        if((*m_reqHeader).get_req_headers().cont_length > 0)
+        {
 		 m_bodyHandler = Shared_ptr<IInputHandler>(new InputLengthHandler
 			 (m_file_descriptor, m_reqHeader->get_req_headers().cont_length, m_remainAfterRequest));
+        //  std::cout << "<<<<<<<<INIT BODYHANDLER InputLengthHandler" << std::endl;
+        }
+        else if((*m_reqHeader).get_req_headers().cont_length == 0)
+        {
+            if ((*m_reqHeader).get_req_headers().is_chunked)
+            {
+                // std::cout << "<<<<<<<<INIT BODYHANDLER InputLengthHandler" << std::endl;
+                m_bodyHandler = Shared_ptr<IInputHandler>(new InputChunkedHandler
+			        (m_file_descriptor, 1000000));
+            }
+            else
+            {
+                // std::cout << "<<<<<<SET STATUS DONE" << std::endl;
+                m_procStatus = Done;
+            }
+        }
+        else
+        {
+            // std::cout << "<<<<<<SET STATUS DONE" << std::endl;
+            m_procStatus = Done;
+        }
      }
  }
 
@@ -315,7 +336,7 @@ void SocketHolder::AccumulateRequest(const std::string& str)
 			 file.put(s[i]);
 		 }
 		 file.close();
-		 m_procStatus = WriteBody;//
+		 m_procStatus = WriteRequest;//
      }
  }
 
