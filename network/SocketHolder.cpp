@@ -215,7 +215,7 @@ void SocketHolder::InitWriteHandler()
 void SocketHolder::ProcessWrite()
 {
 
-    std::cout << "ProcessWrite" << std::endl;
+    std::cout << "ProcessWrite" << m_file_descriptor << std::endl;
     /* to do make desition depending on state*/
     if (true)
     {
