@@ -165,6 +165,9 @@ void SocketHolder::SetNextState()
 
 void SocketHolder::ProcessRead()
 {
+	std::string resChunk;
+	if (m_procStatus != ReadBody)
+	{
     int res = recv(m_file_descriptor, m_buffer, BUFFER_SIZE - 1, 0);
     m_buffer[BUFFER_SIZE - 1] = '\0';
 
@@ -176,17 +179,18 @@ void SocketHolder::ProcessRead()
     }
 
     m_buffer[res] = '\0';
-    std::string resChunk(m_buffer);
+    /*std::string*/ resChunk = m_buffer;//(m_buffer);
 
     //todo debug
     std::cout << "procStat" << m_procStatus << std::endl;
-
+	}
     switch (m_procStatus)
     {
     case ReadRequest:
         AccumulateRequest(resChunk);
         break;
     case ReadBody:
+		HandleBody();;
         break;
 
     default:
@@ -272,34 +276,48 @@ void SocketHolder::AccumulateRequest(const std::string& str)
     /* if req header done reading */
     if (found != std::string::npos)
     {
+		m_remainAfterRequest = m_req_string.substr(found + 4, m_req_string.size() - (found + 4));
+		m_req_string = m_req_string.substr(0, found);
         /*todo testing only. should be READ BODY*/
         m_reqHeader = Shared_ptr<HttpReqHeader>(new HttpReqHeader(m_req_string));
-        m_procStatus = WriteBody;
+//        m_procStatus = WriteBody;
+		if (m_reqHeader->get_req_headers().method == "POST")
+			m_procStatus = ReadBody;
+		else
+			m_procStatus = Done;
     }
 }
 
-// void SocketHolder::InitBodyHandler()
-// {
-//     std::cout << "Check init handler" << std::endl; 
-//     if (m_bodyHandler.get() == NULL)
-//     {
-//         std::cout << "INIT HANDLER" << std::endl;
-//         Shared_ptr<IBodyHandler> sh_ptr(new UploadBodyHandler("default_path"));
-//         m_bodyHandler = sh_ptr;
-//     }
-// }
+ void SocketHolder::InitBodyHandler()
+ {
+     std::cout << "Check init handler" << std::endl;
+     if (m_bodyHandler.get() == NULL)
+     {
+         std::cout << "INIT HANDLER" << std::endl;
+		 m_bodyHandler = Shared_ptr<IInputHandler>(new InputLengthHandler
+			 (m_file_descriptor, m_reqHeader->get_req_headers().cont_length, m_remainAfterRequest));
+     }
+ }
 
-// void SocketHolder::HandleBody(std::string& chunkStr)
-// {
-//     InitBodyHandler();
+ void SocketHolder::HandleBody()
+ {
+     InitBodyHandler();
 
-//     std::cout << "HANDLE BODY" << std::endl;
-//     m_bodyHandler->ProcessInput(chunkStr);
-//     if (m_bodyHandler->IsDone())
-//     {
-//         m_procStatus = Done;
-//     }
-// }
+     std::cout << "HANDLE BODY" << std::endl;
+     m_bodyHandler->ProcessInput();
+     if (m_bodyHandler->IsDone())
+     {
+         m_procStatus = Done;
+		 std::string s = dynamic_cast<InputLengthHandler*>(m_bodyHandler.get())->GetRes();
+		 std::fstream file("body.txt", std::ios::out);
+		 for (size_t i = 0; i < s.size(); ++i)
+		 {
+			 file.put(s[i]);
+		 }
+		 file.close();
+		 m_procStatus = WriteBody;//
+     }
+ }
 
 
 } //namespace ft
