@@ -59,7 +59,7 @@ private:
     SocketHolder();
     void SetNextState();
     void AccumulateRequest(const std::string& reqChunk);
-    void HandleBody(std::string& str);
+    void HandleBody(void);
     // bool m_req_done = false;
 
     /* whole request as string */
@@ -72,7 +72,7 @@ private:
     void InitBodyHandler();
     void InitWriteHandler();
 
-    // Shared_ptr<IInputHandler> m_bodyHandler;
+     Shared_ptr<IInputHandler> m_bodyHandler;
     Shared_ptr<IOutputHandler> m_writeHandler;
 
 
