@@ -250,7 +250,7 @@ void SocketHolder::AccumulateRequest()
 {
     char buffer[BUFF_SIZE];
    
-    int res = recv(m_file_descriptor, buffer, BUFFER_SIZE - 1, 0);
+    int res = recv(m_file_descriptor, buffer, BUFFER_SIZE, 0);
 
     if (res < 0)
     {
@@ -259,21 +259,16 @@ void SocketHolder::AccumulateRequest()
         throw std::runtime_error("AccumulateRequest FAILED");
     }
 
-    buffer[res] = '\0';
-
-	std::string str(buffer);
-    m_req_string.append(str);
+	m_req_string.append(buffer, res);
 
     std::string::size_type found = m_req_string.find("\r\n\r\n");
-    
+
     /* if req header done reading */
     if (found != std::string::npos)
     {
-
-        std::cout << "remain all string:" << str.size() << std::endl;
 		m_remainAfterRequest = m_req_string.substr(found + 4, m_req_string.size() - (found + 4));
 
-        std::cout << "remain string:" << m_remainAfterRequest.size() <<std::endl;
+//        std::cout << "remain string:" << m_remainAfterRequest.size() <<std::endl;
 
 		m_req_string = m_req_string.substr(0, found);
         /*todo testing only. should be READ BODY*/

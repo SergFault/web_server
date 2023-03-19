@@ -99,6 +99,8 @@ namespace ft
                 perror(ss.str().c_str());
                 throw std::runtime_error("InputLengthHandler receive error");
             }
+			else if (readRes == 0)
+				m_isDone = true;
 
             m_counter += readRes;
 
@@ -111,6 +113,8 @@ namespace ft
             m_lengthLeft -= readRes;
 
             m_body.write(buffer, readRes);
+
+			std::cout << "[[[" << m_body.str() << "]]]" << std::endl;
 
             if (m_lengthLeft == 0)
             {
