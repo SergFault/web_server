@@ -134,6 +134,8 @@ std::string SocketHolder::read()
     return std::string(buffer);
 }
 
+
+
 // void SocketHolder::SetNextState()
 // {
 //     switch (m_procStatus)
@@ -220,11 +222,15 @@ Shared_ptr<SocketHolder> SocketHolder::accept()
     /* todo debug */
     if (sock->getFd() != -1)
     {
+		std::stringstream ss;
+		ss << reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)->sin_port;
+		m_ip_port = std::string(inet_ntoa(reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)->sin_addr))
+					+ ":";
+		m_ip_port.append(ss.str());
         std::cout << "NEW SOCKET ACCEPTED" << std::endl;
-        std::cout << "  Host Address:" << inet_ntoa(reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)->sin_addr) << std::endl;
-        std::cout << "  FD:" << sock->getFd() << std::endl;
-        std::cout << "  Host Port:" << reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)->sin_port << std::endl << std::endl;
-    }
+        std::cout << "  Host Port:" << m_ip_port << std::endl;
+        std::cout << "  FD:" << sock->getFd() << std::endl << std::endl;
+	}
     // std::cout << reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)-> << std::endl;
 
 
@@ -354,6 +360,23 @@ void SocketHolder::AccumulateRequest()
 		 m_procStatus = WriteRequest;//
      }
  }
+
+void SocketHolder::SetLocation()
+{
+	std::vector<CfgCtx>::const_iterator it;
+	std::vector<CfgCtx> match;
+
+	std::string	server_ip_port;
+
+	for (it = m_configs.begin(); it != m_configs.end(); ++it)
+	{
+		server_ip_port = it->ip + ":" + it->port;
+		if (server_ip_port == m_ip_port)
+		{
+			match.push_back(*it);
+		}
+	}
+}
 
 
 } //namespace ft

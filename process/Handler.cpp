@@ -106,9 +106,9 @@ namespace ft
 
             // std::cout << "read: " << std::endl;
             // std::cout.write(buffer, bufferSize);
-            std::cout << "read all: " << m_counter << std::endl;
-            std::cout << "read: " << readRes << std::endl;
-            std::cout << "m_lengthLeft: " << m_lengthLeft << std::endl;
+//            std::cout << "read all: " << m_counter << std::endl;
+//            std::cout << "read: " << readRes << std::endl;
+//            std::cout << "m_lengthLeft: " << m_lengthLeft << std::endl;
 
             m_lengthLeft -= readRes;
 

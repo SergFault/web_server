@@ -52,7 +52,6 @@ public:
     void ProcessRead();
     void ProcessWrite();
 
-
 private:
     SocketHolder();
     // void SetNextState();
@@ -69,6 +68,7 @@ private:
 
     void InitBodyHandler();
     void InitWriteHandler();
+	void SetLocation();
 
      Shared_ptr<IInputHandler> m_bodyHandler;
     Shared_ptr<IOutputHandler> m_writeHandler;
@@ -80,7 +80,11 @@ private:
     sockaddr m_hostSockAdd;
     uint32_t m_hostSockAddrLen;
 
+	std::string m_ip_port;
+
     ProcessStatus m_procStatus;
+
+	std::string m_location;
 
     /* configs */
     const std::vector<CfgCtx>& m_configs;
