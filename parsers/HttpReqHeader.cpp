@@ -91,9 +91,17 @@ namespace ft
             }
             else if (line == "content-type")
             {
-                std::getline(ihead, m_content_type, ':');
-                m_content_type = trim_spaces(m_content_type);
-                // std::cout << "content-type: [" << m_content_type << "]" << std::endl; //debug
+				size_t bound;
+				std::getline(ihead, m_content_type, ':');
+				//m_content_type = trim_spaces(m_content_type);
+				if ((bound = m_content_type.find("; boundary=")) != std::string::npos)
+				{
+					m_boundary = m_content_type.substr(bound + sizeof("; boundary="));
+					m_boundary = trim_spaces(m_boundary);
+					m_content_type = m_content_type.substr(0, bound);
+				}
+				m_content_type = trim_spaces(m_content_type);
+				std::cout << "content-type: [" << m_content_type << "]" << " : " << m_boundary << std::endl; //debug
             }
             else if (line == "connection")
             {
@@ -218,6 +226,8 @@ namespace ft
         res.is_req_folder = m_req_folder;
         res.rel_path = m_rel_path;
 		res.is_cgi = m_cgi;
+
+		res.boundary = m_boundary;
 
         return res;
     }

@@ -72,6 +72,7 @@ namespace ft
 
         size_t  cont_length;
         std::string content_type;
+		std::string boundary;
         
         bool    keep_alive;
         bool    is_chunked;
@@ -94,6 +95,7 @@ namespace ft
         std::string m_content_length;
         
         std::string m_content_type;
+		std::string m_boundary;
         
         bool        m_keep_alive;
         bool        m_chunked;

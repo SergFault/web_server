@@ -114,7 +114,7 @@ namespace ft
 
             m_body.write(buffer, readRes);
 
-			std::cout << "[[[" << m_body.str() << "]]]" << std::endl;
+//			std::cout << "[[[" << m_body.str() << "]]]" << std::endl;
 
             if (m_lengthLeft == 0)
             {
