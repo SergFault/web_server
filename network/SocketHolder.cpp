@@ -4,7 +4,6 @@
 #include <fcntl.h>
 
 #define CHUNKED_HEADER "HTTP/1.1 200 OK\r\n"\
-"Content-Type: text/html\r\n"\
 "Transfer-Encoding: chunked\r\n"\
 "Connection: keep-alive\r\n"\
 "\r\n"\
@@ -205,7 +204,7 @@ void SocketHolder::InitWriteHandler()
     if (m_writeHandler.get() == NULL)
     {
         m_writeHandler = Shared_ptr<IOutputHandler>(new OutputChunkedHandler(m_file_descriptor,
-                                                    "../www/default/index.html",
+                                                    m_file,
                                                     CHUNKED_HEADER));
     }
 }
@@ -240,14 +239,16 @@ Shared_ptr<SocketHolder> SocketHolder::accept()
     /* todo debug */
     if (sock->getFd() != -1)
     {
-		std::stringstream ss;
-		ss << reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)->sin_port;
+//		std::stringstream ss;
+//		ss << ntohs(reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)->sin_port);
+//		ss >> m_serverPort;
+//		m_serverIp = std::string(inet_ntoa(reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)->sin_addr));
 		// m_ip_port = std::string(inet_ntoa(reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)->sin_addr))
 		// 			+ ":";
 		// m_ip_port.append(ss.str());
-        // std::cout << "NEW SOCKET ACCEPTED" << std::endl;
-        // std::cout << "  Host Port:" << m_ip_port << std::endl;
-        // std::cout << "  FD:" << sock->getFd() << std::endl << std::endl;
+        std::cout << "NEW SOCKET ACCEPTED" << std::endl;
+        std::cout << "  Host Port:" << m_serverIp << " : " << m_serverPort << std::endl;
+        std::cout << "  FD:" << sock->getFd() << std::endl << std::endl;
 	}
     else
     {
@@ -311,6 +312,9 @@ void SocketHolder::AccumulateRequest()
         {
 			m_procStatus = WriteRequest;
         }
+
+		SetVServer();
+		SetLocation();
     }
 }
 
@@ -382,24 +386,74 @@ void SocketHolder::AccumulateRequest()
      }
  }
 
-void SocketHolder::SetLocation()
+void SocketHolder::SetVServer()
 {
-	std::vector<CfgCtx>::const_iterator it;
+	std::vector<CfgCtx>::const_iterator cit;
+	std::vector<CfgCtx>::iterator it;
 	std::vector<CfgCtx> match;
+	std::string		host = m_reqHeader->get_req_headers().host;
 
 	std::string	server_ip_port;
+	std::string m_ip_port = m_serverIp + ":" + m_serverPort;
 
-	for (it = m_configs.begin(); it != m_configs.end(); ++it)
+	for (cit = m_configs.begin(); cit != m_configs.end(); ++cit)
 	{
-		server_ip_port = it->ip + ":" + it->port;
+		server_ip_port = cit->ip + ":" + cit->port;
 
-        //todo uncomment
-		// if (server_ip_port == m_ip_port)
-		// {
-		// 	match.push_back(*it);
-		// }
+		if ((server_ip_port == m_ip_port) || (cit->ip == "0.0.0.0" && (cit->port == m_serverPort)))
+			match.push_back(*cit);
 	}
+
+	for (it = match.begin(); it != match.end(); ++it)
+	{
+		if (it->server_names.find(host) != it->server_names.end())
+		{
+			m_vServer = *it;
+			return;
+		}
+	}
+
+	m_vServer = *match.begin();
 }
 
+void SocketHolder::SetLocation()
+{
+	m_file = m_reqHeader->get_req_headers().path;
+	bool isdir = m_reqHeader->get_req_headers().is_req_folder;
+
+	std::set<std::string>::reverse_iterator it;
+
+	for (it = m_vServer.location_paths.rbegin(); it != m_vServer.location_paths.rend(); ++it)
+	{
+		std::cout << "m_file " << m_file << " | location: " << *it << std::endl;
+		if (m_file.find(*it) != std::string::npos)
+			m_location = *it;
+	}
+
+	if (m_location.empty())
+		std::cout << "Error to find location" << std::endl;
+	else
+		std::cout << "Found location: [" << m_location << "]" << std::endl;
+
+	if (isdir)
+	{
+		m_file = m_vServer.locations.find(m_location)->second.root
+			+ m_vServer.locations.find(m_location)->second.index;
+	}
+	else
+		m_file = m_vServer.locations.find(m_location)->second.root + m_file.substr(1);
+
+	std::cout << "[[" << m_file << "]]";
+}
+
+void SocketHolder::SetMServerIp(const std::string &m_server_ip)
+{
+	m_serverIp = m_server_ip;
+}
+
+void SocketHolder::SetMServerPort(const std::string &m_server_port)
+{
+	m_serverPort = m_server_port;
+}
 
 } //namespace ft

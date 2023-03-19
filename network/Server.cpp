@@ -139,6 +139,8 @@ void Server::Run()
                 {
                     // std::cout << "Accepted " << sh_h->getFd() << "Status" << sh_h->getStatus() << std::endl;
                     sh_h->setNonBlocking();
+					sh_h->SetMServerIp((*it)->getServerIp());
+					sh_h->SetMServerPort((*it)->getServerPort());
                     m_rwSockets.push_back(sh_h);
                 }
             }
@@ -199,7 +201,7 @@ void Server::Run()
             // it->sendFromRespHandler();
         }
     
-        std::cout << "<<<<<<<--------------------------------------------->>>>>>>>>>>>>>>>>" << std::endl << std::endl;
+        //std::cout << "<<<<<<<--------------------------------------------->>>>>>>>>>>>>>>>>" << std::endl << std::endl;
         // usleep(2000000);
     }
 }

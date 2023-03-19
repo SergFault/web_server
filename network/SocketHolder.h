@@ -70,6 +70,7 @@ private:
 
     void InitBodyHandler();
     void InitWriteHandler();
+	void SetVServer();
 	void SetLocation();
 
      Shared_ptr<IInputHandler> m_bodyHandler;
@@ -83,12 +84,20 @@ private:
     uint32_t m_hostSockAddrLen;
 
 	std::string m_serverIp;
+public:
+	void SetMServerIp(const std::string &m_server_ip);
+	void SetMServerPort(const std::string &m_server_port);
+private:
 	std::string m_serverPort;
 
     ProcessStatus m_procStatus;
 
-	std::string m_location;
+	std::string m_curPath;
+	std::string m_file;
 
+
+	CfgCtx m_vServer;
+	std::string m_location;
     /* configs */
     const std::vector<CfgCtx>& m_configs;
 };
