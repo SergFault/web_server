@@ -36,7 +36,6 @@ void Server::initialize(){
         /* convert string port to binary and fill sockaddr_in */
         int port;
         std::stringstream(it->port) >> port;
-        std::cout << "binding to port: " << port << std::endl;
         server_address.sin_port = htons(port);
 
         /* Socket creation */
@@ -58,18 +57,28 @@ void Server::initialize(){
 
         try
         {
+            bool alreadyHasPort = false;
+            for(std::vector< ft::Shared_ptr<ft::SocketHolder> >::iterator it_socket = m_listenSockets.begin(); it_socket != m_listenSockets.end(); it_socket++)
+            {
+                if ((*it_socket)->getServerPort() == (*it).port)
+                {
+                    alreadyHasPort = true;
+                }
+            }
+            if (alreadyHasPort)
+                continue ;
+
             socket_ptr->bind(&server_address);
             socket_ptr->listen();
             socket_ptr->setNonBlocking();
+            std::cout << "Binding to port " << (*it).port << std::endl;
         }
         catch(const std::exception &ex)
         {
             std::cerr << "Listener socket init FAILED " << ex.what() << std::endl;
             throw std::exception();
         }
-        
-        std::cout << "There2" << std::endl;
-
+  
         m_listenSockets.push_back(socket_ptr);
     }
 }

@@ -26,6 +26,16 @@ int SocketHolder::getFd()
     return m_file_descriptor;
 }
 
+const std::string& SocketHolder::getServerIp() const
+{
+    return m_serverIp;
+}
+
+const std::string& SocketHolder::getServerPort() const
+{
+    return m_serverPort;
+}
+
 ProcessStatus SocketHolder::getStatus() const
 {
     return m_procStatus;
@@ -71,7 +81,7 @@ SocketHolder::SocketHolder(int domain, int type, int protocol, const std::vector
                    }
 }
 
-void SocketHolder::bind(const struct sockaddr_in *addr)
+void SocketHolder::bind(struct sockaddr_in *addr)
 {
      if (::bind(m_file_descriptor, reinterpret_cast<const struct sockaddr *>(addr), sizeof(*addr)) == -1)
      {
@@ -79,6 +89,14 @@ void SocketHolder::bind(const struct sockaddr_in *addr)
         perror("error:\n");
         throw std::runtime_error("Error while binding\n");
      }
+
+    std::stringstream ss;
+    ss << ntohs(addr->sin_port);
+
+    m_serverPort = ss.str();
+    m_serverIp = std::string(inet_ntoa((addr)->sin_addr));
+
+    // std::cout << "binding" << m_serverIp << " " << m_serverPort << std::endl;
 }
 
 void SocketHolder::listen()
@@ -224,15 +242,18 @@ Shared_ptr<SocketHolder> SocketHolder::accept()
     {
 		std::stringstream ss;
 		ss << reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)->sin_port;
-		m_ip_port = std::string(inet_ntoa(reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)->sin_addr))
-					+ ":";
-		m_ip_port.append(ss.str());
-        std::cout << "NEW SOCKET ACCEPTED" << std::endl;
-        std::cout << "  Host Port:" << m_ip_port << std::endl;
-        std::cout << "  FD:" << sock->getFd() << std::endl << std::endl;
+		// m_ip_port = std::string(inet_ntoa(reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)->sin_addr))
+		// 			+ ":";
+		// m_ip_port.append(ss.str());
+        // std::cout << "NEW SOCKET ACCEPTED" << std::endl;
+        // std::cout << "  Host Port:" << m_ip_port << std::endl;
+        // std::cout << "  FD:" << sock->getFd() << std::endl << std::endl;
 	}
+    else
+    {
     // std::cout << reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)-> << std::endl;
-
+        throw std::runtime_error("Error accepting socket");
+    }
 
     return sock;
 }
@@ -371,10 +392,12 @@ void SocketHolder::SetLocation()
 	for (it = m_configs.begin(); it != m_configs.end(); ++it)
 	{
 		server_ip_port = it->ip + ":" + it->port;
-		if (server_ip_port == m_ip_port)
-		{
-			match.push_back(*it);
-		}
+
+        //todo uncomment
+		// if (server_ip_port == m_ip_port)
+		// {
+		// 	match.push_back(*it);
+		// }
 	}
 }
 

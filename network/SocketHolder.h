@@ -41,7 +41,7 @@ public:
     SocketHolder(int desc, const std::vector<CfgCtx>& ctxs);
 
     ~SocketHolder();
-    void bind(const struct sockaddr_in *addr);
+    void bind(struct sockaddr_in *addr);
     void listen();
     Shared_ptr<SocketHolder> accept();
     void send(const std::string&);
@@ -51,6 +51,8 @@ public:
     int getFd();
     void ProcessRead();
     void ProcessWrite();
+    const std::string& getServerIp() const;
+    const std::string& getServerPort() const;
 
 private:
     SocketHolder();
@@ -80,7 +82,8 @@ private:
     sockaddr m_hostSockAdd;
     uint32_t m_hostSockAddrLen;
 
-	std::string m_ip_port;
+	std::string m_serverIp;
+	std::string m_serverPort;
 
     ProcessStatus m_procStatus;
 
