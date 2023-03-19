@@ -40,9 +40,9 @@ void SocketHolder::setNonBlocking()
         perror("falgs error: ");
         throw std::runtime_error("Can`t get fd flags \n");
     }
-    
+
     flags |= O_NONBLOCK;
-    if (fcntl(m_file_descriptor, F_SETFL, flags) < 0)
+    if (fcntl(m_file_descriptor, F_SETFL, O_NONBLOCK) <  0)
     {
         throw std::runtime_error("Can`t set nonblocking option \n");
     }
@@ -167,25 +167,10 @@ std::string SocketHolder::read()
 
 void SocketHolder::ProcessRead()
 {
-	std::string resChunk;
-
-    int res = recv(m_file_descriptor, m_buffer, BUFFER_SIZE - 1, 0);
-    m_buffer[BUFFER_SIZE - 1] = '\0';
-
-    if (res < 0)
-    {
-        // std::cout << m_file_descriptor << std::endl;
-        perror("FAILED");
-        throw std::runtime_error("ProcessRead FAILED");
-    }
-
-    m_buffer[res] = '\0';
-    /*std::string*/ resChunk = m_buffer;//(m_buffer);
-	
     if (m_procStatus == ReadRequest)
     {
         std::cout << "  socket #" << m_file_descriptor << " AccumulateRequest" << std::endl;
-        AccumulateRequest(resChunk);
+        AccumulateRequest();
     }
     if (m_procStatus == ReadBody)
     {
@@ -264,15 +249,36 @@ SocketHolder::~SocketHolder()
     }
 }
 
-void SocketHolder::AccumulateRequest(const std::string& str)
+void SocketHolder::AccumulateRequest()
 {
+    char buffer[BUFF_SIZE];
+   
+    int res = recv(m_file_descriptor, m_buffer, BUFFER_SIZE - 1, 0);
+    m_buffer[BUFFER_SIZE - 1] = '\0';
+
+    if (res < 0)
+    {
+        // std::cout << m_file_descriptor << std::endl;
+        perror("FAILED");
+        throw std::runtime_error("AccumulateRequest FAILED");
+    }
+
+    m_buffer[res] = '\0';
+
+	std::string str(m_buffer);
+
     std::string::size_type found = str.find("\r\n\r\n");
     m_req_string.append(str);
+
 
     /* if req header done reading */
     if (found != std::string::npos)
     {
+        std::cout << "remain all string:" << str.size() << std::endl;
 		m_remainAfterRequest = m_req_string.substr(found + 4, m_req_string.size() - (found + 4));
+
+        std::cout << "remain string:" << m_remainAfterRequest.size() <<std::endl;
+
 		m_req_string = m_req_string.substr(0, found);
         /*todo testing only. should be READ BODY*/
         m_reqHeader = Shared_ptr<HttpReqHeader>(new HttpReqHeader(m_req_string));

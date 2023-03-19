@@ -56,7 +56,7 @@ public:
 private:
     SocketHolder();
     // void SetNextState();
-    void AccumulateRequest(const std::string& reqChunk);
+    void AccumulateRequest();
     void HandleBody(void);
     // bool m_req_done = false;
 

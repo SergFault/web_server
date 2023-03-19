@@ -68,9 +68,15 @@ namespace ft
 
     InputLengthHandler::InputLengthHandler(int fd, size_t length, const std::string& remain) :
                                                                 m_fd(fd),
-                                                                m_lengthLeft(length),
+                                                                m_lengthLeft(length - remain.size()),
                                                                 m_body(remain),
-                                                                m_isDone(false){ }
+                                                                m_isDone(false)
+                                                                { 
+                                                                    std::cout << "<<<<remain" << remain.size() << std::endl;
+                                                                    std::cout << "<<<<init" << length - remain.size() << std::endl;
+                                                                    m_body << remain;
+                                                                    m_counter = 0;
+                                                                }
     
     bool InputLengthHandler::IsDone() const
     {
@@ -83,14 +89,22 @@ namespace ft
             size_t bufferSize = 1024;
             char buffer[bufferSize];
 
-            int readSize = bufferSize > m_lengthLeft ?  m_lengthLeft : bufferSize ;
+            int readSize = bufferSize > m_lengthLeft ? m_lengthLeft : bufferSize ;
             readRes = recv(m_fd, buffer, readSize, 0);
             if (readRes < 0)
             {
-                perror("error");
-                throw std::runtime_error("InputLengthHandler receive error");
+                return ;
+                // std::stringstream ss;
+                // ss << "error socket#" << m_fd;
+                // perror(ss.str().c_str());
+                // throw std::runtime_error("InputLengthHandler receive error");
             }
 
+            m_counter += readRes;
+
+            // std::cout << "read: " << std::endl;
+            // std::cout.write(buffer, bufferSize);
+            std::cout << "read all: " << m_counter << std::endl;
             std::cout << "read: " << readRes << std::endl;
             std::cout << "m_lengthLeft: " << m_lengthLeft << std::endl;
 
@@ -184,7 +198,7 @@ namespace ft
             {
                 std::fill_n(buf, BUFF_SIZE, '\0');
                 cnt = recv(m_fd, buf, 20, 0);
-
+                std::cout << "another recv" << std::endl;
 
                 search_chunk.append(buf);
             }
