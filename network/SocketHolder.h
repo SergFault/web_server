@@ -84,8 +84,6 @@ private:
 
     /* configs */
     const std::vector<CfgCtx>& m_configs;
-
-    char m_buffer[1024];
 };
 
 

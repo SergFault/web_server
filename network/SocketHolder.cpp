@@ -184,18 +184,15 @@ void SocketHolder::InitWriteHandler()
 {
     if (m_writeHandler.get() == NULL)
     {
-        // std::cout << "InitWriteHandler" << std::endl;
         m_writeHandler = Shared_ptr<IOutputHandler>(new OutputChunkedHandler(m_file_descriptor,
                                                     "../www/default/index.html",
                                                     CHUNKED_HEADER));
-        // std::cout << "InitWriteHandler done" << std::endl;
     }
 }
 
 void SocketHolder::ProcessWrite()
 {
 
-    // std::cout << "ProcessWrite" << m_file_descriptor << std::endl;
     /* to do make desition depending on state*/
     if (true)
     {
@@ -253,8 +250,7 @@ void SocketHolder::AccumulateRequest()
 {
     char buffer[BUFF_SIZE];
    
-    int res = recv(m_file_descriptor, m_buffer, BUFFER_SIZE - 1, 0);
-    m_buffer[BUFFER_SIZE - 1] = '\0';
+    int res = recv(m_file_descriptor, buffer, BUFFER_SIZE - 1, 0);
 
     if (res < 0)
     {
@@ -263,17 +259,17 @@ void SocketHolder::AccumulateRequest()
         throw std::runtime_error("AccumulateRequest FAILED");
     }
 
-    m_buffer[res] = '\0';
+    buffer[res] = '\0';
 
-	std::string str(m_buffer);
-
-    std::string::size_type found = str.find("\r\n\r\n");
+	std::string str(buffer);
     m_req_string.append(str);
 
-
+    std::string::size_type found = m_req_string.find("\r\n\r\n");
+    
     /* if req header done reading */
     if (found != std::string::npos)
     {
+
         std::cout << "remain all string:" << str.size() << std::endl;
 		m_remainAfterRequest = m_req_string.substr(found + 4, m_req_string.size() - (found + 4));
 
