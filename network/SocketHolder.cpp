@@ -329,26 +329,28 @@ void SocketHolder::AccumulateRequest()
      m_bodyHandler->ProcessInput();
      if (m_bodyHandler->IsDone())
      {
-		 std::string filename;
-
-		 size_t begin, end;
-		 std::string s = dynamic_cast<InputLengthHandler*>(m_bodyHandler.get())->GetRes();
-
-		 begin = s.find("; filename=\"");
-
-		 end = s.find("\r\n", begin);
-
-		 filename = s.substr(begin + sizeof("; filename="), end - begin - sizeof("; filename=") - 1);
-
-		 begin = s.find("\r\n\r\n", end) + 4;
-		 end = s.find("--" + m_reqHeader->get_req_headers().boundary, begin);
-
-		 std::fstream file(filename.c_str(), std::ios::out);
-		 for (size_t i = begin; i < end; ++i)
+		 if (!m_reqHeader->get_req_headers().boundary.empty())
 		 {
-			 file.put(s[i]);
+			 std::string filename;
+
+			 size_t begin, end;
+			 std::string s = dynamic_cast<InputLengthHandler *>(m_bodyHandler.get())->GetRes();
+
+			 begin = s.find("; filename=\"");
+
+			 end = s.find("\r\n", begin);
+
+			 filename = s.substr(begin + sizeof("; filename="), end - begin - sizeof("; filename=") - 1);
+
+			 begin = s.find("\r\n\r\n", end) + 4;
+			 end = s.find("--" + m_reqHeader->get_req_headers().boundary, begin);
+
+			 std::fstream file(filename.c_str(), std::ios::out);
+			 for (size_t i = begin; i < end; ++i) {
+				 file.put(s[i]);
+			 }
+			 file.close();
 		 }
-		 file.close();
 		 m_procStatus = WriteRequest;//
      }
  }
