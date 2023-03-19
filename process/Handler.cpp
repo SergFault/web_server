@@ -93,11 +93,11 @@ namespace ft
             readRes = recv(m_fd, buffer, readSize, 0);
             if (readRes < 0)
             {
-                return ;
-                // std::stringstream ss;
-                // ss << "error socket#" << m_fd;
-                // perror(ss.str().c_str());
-                // throw std::runtime_error("InputLengthHandler receive error");
+                // return ;
+                std::stringstream ss;
+                ss << "error socket#" << m_fd;
+                perror(ss.str().c_str());
+                throw std::runtime_error("InputLengthHandler receive error");
             }
 
             m_counter += readRes;

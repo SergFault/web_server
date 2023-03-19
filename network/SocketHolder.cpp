@@ -172,7 +172,7 @@ void SocketHolder::ProcessRead()
         std::cout << "  socket #" << m_file_descriptor << " AccumulateRequest" << std::endl;
         AccumulateRequest();
     }
-    if (m_procStatus == ReadBody)
+    else if (m_procStatus == ReadBody)
     {
         std::cout << "  socket #" << m_file_descriptor << " HandleBody" << std::endl;
 		HandleBody();
