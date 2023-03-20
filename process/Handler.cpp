@@ -58,7 +58,7 @@ namespace ft
                 m_ss.str(m_ss.str().substr(cnt, m_ss.str().size() - cnt));
             else
                 m_ss.str("");
-            if (m_file.eof() && m_ss.str().size() == 0)
+            if (m_file.eof() && m_ss.str().empty())
                 m_isDone = true;
         }
     }
