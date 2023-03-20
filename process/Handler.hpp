@@ -84,7 +84,7 @@ namespace ft
 	class InputChunkedHandler: public IInputHandler
 	{
 	private:
-		size_t	m_fd;
+		int	    m_fd;
 		size_t	m_max_length;
 		bool	m_isDone;
 		size_t	m_counter;
