@@ -12,8 +12,6 @@ namespace ft
             m_filename(filename),
             m_isDone(false)
     {
-        std::fill_n(m_buf, BUFF_SIZE, '\0');
-
         m_ss << header;
 
         m_file.open(m_filename.c_str(), std::ios::in);
@@ -40,14 +38,15 @@ namespace ft
     {
         if (!m_file.eof() || !m_isDone)
         {
-            if (m_ss.str().size() == 0)
+            if (m_ss.str().empty())
             {
                 // std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<WRITE" << std::endl;
-
-                std::fill_n(m_buf, BUFF_SIZE, '\0');
-                m_file.read(m_buf, BUFF_SIZE - 1);
-                m_ss << std::hex << strlen(m_buf);
-                m_ss << "\r\n" << m_buf << "\r\n";
+                m_file.read(m_buf, BUFF_SIZE);
+                std::streamsize cnt = m_file.gcount();
+                m_ss << std::hex << cnt;
+                m_ss << "\r\n";
+                m_ss.write(m_buf, cnt);
+                m_ss << "\r\n";
                 if (m_file.eof())
                 {
                     m_ss << "0\r\n\r\n";
