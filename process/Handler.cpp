@@ -42,18 +42,18 @@ namespace ft
             {
                 // std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<WRITE" << std::endl;
                 m_file.read(m_buf, BUFF_SIZE);
-                std::streamsize cnt = m_file.gcount();
-                m_ss << std::hex << cnt;
+                std::streamsize size = m_file.gcount();
+                m_ss << std::hex << size;
                 m_ss << "\r\n";
-                m_ss.write(m_buf, cnt);
+                m_ss.write(m_buf, size);
                 m_ss << "\r\n";
                 if (m_file.eof())
                 {
                     m_ss << "0\r\n\r\n";
                 }
             }
-//            size_t cnt = send(m_fd, m_ss.str().c_str(), m_ss.str().size(), 0);
-            size_t cnt = write(m_fd, m_ss.str().c_str(), m_ss.str().size());
+            size_t cnt = send(m_fd, m_ss.str().c_str(), m_ss.str().size(), 0);
+//            size_t cnt = write(m_fd, m_ss.str().c_str(), m_ss.str().size());
             if (cnt < m_ss.str().size())
                 m_ss.str(m_ss.str().substr(cnt, m_ss.str().size() - cnt));
             else
