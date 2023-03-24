@@ -18,7 +18,18 @@ namespace ft
 
         if (!m_file.is_open())
         {
-            throw std::runtime_error("FILE NOT OPENED");
+            if (errno == ENOENT) {
+                m_file.open("../www/default/error_pages/404.html");
+                m_ss.str("");
+                m_ss << "HTTP/1.1 404 Not found\r\nTransfer-Encoding: chunked\r\nConnection: closed\r\n\r\n";
+            }
+            else
+            {
+                m_file.open("../www/default/error_pages/500.html");
+                m_ss.str("");
+                m_ss << "HTTP/1.1 500 Internal server error\r\nTransfer-Encoding: chunked\r\nConnection: closed\r\n\r\n";
+            }
+            //throw std::runtime_error("FILE NOT OPENED");
         }
 
     }

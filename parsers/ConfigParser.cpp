@@ -102,14 +102,14 @@ namespace ft
 
         std::string server;
 
-        while ((server = get_server_block(tmp)) != "")
+        while (!(server = get_server_block(tmp)).empty())
         {
             CfgCtx v_server;
             v_server.ip = "0.0.0.0";
             v_server.port = "8080";
 
             std::string location;
-            while ((location = get_location_block(server)) != "")
+            while (!(location = get_location_block(server)).empty())
             {
                 Location    new_location;
 
@@ -130,12 +130,16 @@ namespace ft
                     }
                     else if (l_arg == "return")
                     {
-                        iss_loc_values >> new_location.return_code;
+                        new_location.is_redirect = true;
+                        //iss_loc_values >> new_location.return_code;
                         iss_loc_values >> new_location.redirect_uri;
                     }
                     else if (l_arg == "accepted_methods")
                     {
                         std::string method;
+                        new_location.allow_get = false;
+                        new_location.allow_post = false;
+                        new_location.allow_del = false;
                         while (iss_loc_values >> method)
                         {
                             if (method == "GET")
@@ -162,10 +166,14 @@ namespace ft
                     {
                         new_location.allow_cgi = true;
                     }
-					else if (l_arg == "index")
+                    else if (l_arg == "index")
 					{
 					  	iss_loc_values >> new_location.index;
 					}
+                    else if (l_arg == "client_max_body_size")
+                    {
+                        iss_loc_values >> new_location.client_max_body_size;
+                    }
                 }
 
                 v_server.location_paths.insert(new_location.path);
@@ -186,14 +194,15 @@ namespace ft
 
                 if (key == "client_max_body_size")
                 {
-                    std::string value;
-                    iss_key_values >> value;
-                    v_server.client_max_body_size = atoi(value.c_str());
+                    //std::string value;
+                    //iss_key_values >> value;
+                    iss_key_values >> v_server.client_max_body_size;
+                    //v_server.client_max_body_size = atoi(value.c_str());
                 }
                 else if (key == "listen")
                 {
-                    std::string tmp_ip = "";
-                    std::string tmp_port = "";
+                    std::string tmp_ip;
+                    std::string tmp_port;
 
                     iss_key_values >> std::ws;
                     std::getline(iss_key_values, tmp_ip, ':');
@@ -205,7 +214,7 @@ namespace ft
                     {
                         v_server.ip = tmp_ip;
                         iss_key_values >> tmp_port;
-                        if (tmp_port != "")
+                        if (!tmp_port.empty())
                             v_server.port = tmp_port;
                     }
                 }
@@ -231,8 +240,10 @@ namespace ft
             for (std::map<std::string, Location>::iterator it = v_server.locations.begin();
                     it != v_server.locations.end(); ++it)
             {
-                if ((*it).second.root == "")
+                if ((*it).second.root.empty())
                     (*it).second.root = v_server.root;
+                if ((*it).second.client_max_body_size == 0)
+                    (*it).second.client_max_body_size = v_server.client_max_body_size;
             }
             m_config.push_back(v_server);
         }

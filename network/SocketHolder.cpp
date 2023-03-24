@@ -6,7 +6,12 @@
 #define CHUNKED_HEADER "HTTP/1.1 200 OK\r\n"\
 "Transfer-Encoding: chunked\r\n"\
 "Connection: keep-alive\r\n"\
-"\r\n"\
+"\r\n"                                      \
+
+#define ERROR_404_HEADER "HTTP/1.1 404 Not found\r\n"\
+"Transfer-Encoding: chunked\r\n"\
+"Connection: close\r\n"\
+"\r\n"
 
 namespace ft
 {

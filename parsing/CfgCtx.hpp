@@ -12,12 +12,13 @@ namespace ft
         std::string path;
         std::string root;
         std::string redirect_uri;
+        size_t  client_max_body_size;
         bool    allow_get;
         bool    allow_post;
         bool    allow_del;
         bool    allow_cgi;
         bool    autoindex;
-        u_short return_code;
+        bool    is_redirect;
         std::string index;
         bool    uploading;
         std::string upload_path;
