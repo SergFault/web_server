@@ -108,6 +108,9 @@ namespace ft
 
     class InputCgiPostHandler: public IInputHandler
     {
+    private:
+        pid_t   m_pid;
+        int     m_fd[2];
     public:
         InputCgiPostHandler(int fd, size_t length, const std::string& remain, const std::string& query);
     };
