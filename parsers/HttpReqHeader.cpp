@@ -41,6 +41,8 @@ namespace ft
         m_rel_path(false),
 		m_cgi(false)
     {
+        std::cout << string << std::endl;//debug
+
         std::istringstream ist(string); 
         std::string line;
 
@@ -162,11 +164,14 @@ namespace ft
 
         std::getline(istr2, tmp, '?');
 
-        while (std::getline(istr2, key, '='))
-        {
-            std::getline(istr2, value, '&');
-            m_st_uri.query.insert(std::make_pair(key, value));
-        }
+        istr2 >> m_st_uri.query;
+        std::cout << "query:[" << m_st_uri.query << "]" << std::endl;
+
+//        while (std::getline(istr2, key, '='))
+//        {
+//            std::getline(istr2, value, '&');
+//            m_st_uri.query.insert(std::make_pair(key, value));
+//        }
 
         std::istringstream istr3(tmp);
 

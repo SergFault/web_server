@@ -105,4 +105,10 @@ namespace ft
 
 		std::string GetRes() {return m_body.str();}
 	};
+
+    class InputCgiPostHandler: public IInputHandler
+    {
+    public:
+        InputCgiPostHandler(int fd, size_t length, const std::string& remain, const std::string& query);
+    };
 }   //namespace ft

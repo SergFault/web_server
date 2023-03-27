@@ -77,16 +77,16 @@ namespace ft
     //-----------------------------------------------------------------------------------
 
     InputLengthHandler::InputLengthHandler(int fd, size_t length, const std::string& remain) :
-                                                                m_fd(fd),
-                                                                m_lengthLeft(length - remain.size()),
-                                                                m_body(remain),
-                                                                m_isDone(false)
-                                                                { 
-                                                                    std::cout << "<<<<remain" << remain.size() << std::endl;
-                                                                    std::cout << "<<<<init" << length - remain.size() << std::endl;
-                                                                    m_body << remain;
-                                                                    m_counter = 0;
-                                                                }
+            m_fd(fd),
+            m_lengthLeft(length - remain.size()),
+            m_body(remain),
+            m_isDone(false)
+    {
+        std::cout << "<<<<remain" << remain.size() << std::endl;
+        std::cout << "<<<<init" << length - remain.size() << std::endl;
+        m_body << remain;
+        m_counter = 0;
+    }
     
     bool InputLengthHandler::IsDone() const
     {
@@ -128,6 +128,7 @@ namespace ft
 
             if (m_lengthLeft == 0)
             {
+                std::cout << m_body.str() << std::endl;//debug
                 m_isDone = true;
             }
     }
