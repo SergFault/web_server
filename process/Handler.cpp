@@ -226,4 +226,27 @@ namespace ft
     {
         return m_isDone;
     }
+
+    InputCgiPostHandler::InputCgiPostHandler(int fd, size_t length, const std::string &remain,
+                                             const std::string &query)
+    {
+        pipe(m_pipe_to_cgi);
+        pipe(m_pipe_from_cgi);
+
+        m_pid = fork();
+        if (m_pid == 0)
+        {
+            dup2(m_pipe_to_cgi[0], 0);
+            close(m_pipe_to_cgi[1]);
+            dup2(m_pipe_from_cgi[1], 1);
+            close(m_pipe_from_cgi[0]);
+            //execve
+        }
+        else if (m_pid > 0)
+        {
+            close(m_pipe_to_cgi[0]);
+            close(m_pipe_from_cgi[1]);
+            //
+        }
+    }
 }   //namespace ft

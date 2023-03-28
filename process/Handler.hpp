@@ -8,6 +8,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include <unistd.h>
+
 #define BUFF_SIZE 1024
 
 namespace ft
@@ -110,7 +112,8 @@ namespace ft
     {
     private:
         pid_t   m_pid;
-        int     m_fd[2];
+        int     m_pipe_to_cgi[2];
+        int     m_pipe_from_cgi[2];
     public:
         InputCgiPostHandler(int fd, size_t length, const std::string& remain, const std::string& query);
     };
