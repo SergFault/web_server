@@ -7,8 +7,13 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <ctime>
 
 #include <unistd.h>
+#include <fcntl.h>
+#include <iostream>
+#include <exception>
+#include <sys/wait.h>
 
 #define BUFF_SIZE 1024
 
@@ -108,10 +113,11 @@ namespace ft
 		std::string GetRes() {return m_body.str();}
 	};
 
-    class InputCgiPostHandler: public IInputHandler
+    class InputCgiPostHandler//: public IInputHandler
     {
     private:
         pid_t   m_pid;
+        time_t  m_timer;
         int     m_pipe_to_cgi[2];
         int     m_pipe_from_cgi[2];
     public:

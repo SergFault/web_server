@@ -1,10 +1,5 @@
 #include "Handler.hpp"
 
-#include <fcntl.h>
-#include <unistd.h>
-#include <iostream>
-#include <exception>
-
 namespace ft
 {
     OutputChunkedHandler::OutputChunkedHandler(int fd, const std::string& filename, const std::string& header) :
@@ -232,21 +227,40 @@ namespace ft
     {
         pipe(m_pipe_to_cgi);
         pipe(m_pipe_from_cgi);
-
+        std::cout << "begin\n";
         m_pid = fork();
-        if (m_pid == 0)
+        std::time(&m_timer);
+        if (m_pid == -1)
         {
+            //throw error
+        }
+        else if (m_pid == 0)
+        {
+            //fork
             dup2(m_pipe_to_cgi[0], 0);
+            close(m_pipe_to_cgi[0]);
             close(m_pipe_to_cgi[1]);
             dup2(m_pipe_from_cgi[1], 1);
             close(m_pipe_from_cgi[0]);
+            close(m_pipe_from_cgi[1]);
+            sleep(60);
+            _exit(0);
             //execve
         }
-        else if (m_pid > 0)
-        {
+        else if (m_pid > 0) {
+            //this
             close(m_pipe_to_cgi[0]);
             close(m_pipe_from_cgi[1]);
-            //
+
+//            while (1)
+//            {
+//                if (std::time(NULL) - m_timer > 15)
+//                {
+//                    std::cout << "time out\n";
+//                    kill(m_pid, SIGKILL);
+//                    break;
+//                }
+//            }
         }
     }
 }   //namespace ft
