@@ -113,7 +113,7 @@ namespace ft
 		std::string GetRes() {return m_body.str();}
 	};
 
-    class InputCgiPostHandler//: public IInputHandler
+    class InputCgiPostHandler: public IInputHandler
     {
     private:
         pid_t   m_pid;
@@ -121,6 +121,6 @@ namespace ft
         int     m_pipe_to_cgi[2];
         int     m_pipe_from_cgi[2];
     public:
-        InputCgiPostHandler(int fd, size_t length, const std::string& remain, const std::string& query);
+        InputCgiPostHandler(int fd, size_t length, const std::string& body, const std::string& query);
     };
 }   //namespace ft

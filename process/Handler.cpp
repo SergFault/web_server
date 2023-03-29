@@ -208,7 +208,6 @@ namespace ft
             {
                 std::fill_n(buf, BUFF_SIZE, '\0');
                 cnt = recv(m_fd, buf, 20, 0);
-                std::cout << "another recv" << std::endl;
 
                 search_chunk.append(buf);
             }
@@ -227,12 +226,14 @@ namespace ft
     {
         pipe(m_pipe_to_cgi);
         pipe(m_pipe_from_cgi);
-        std::cout << "begin\n";
+
+		char* envp[5];//set CONTENT_LENGTH CONTENT_TYPE QUERY_STRING REQUEST_METHOD PATH_INFO PATH_TRANSLATED
+		char* argv[2];
+		argv[1] = NULL;
         m_pid = fork();
-        std::time(&m_timer);
         if (m_pid == -1)
         {
-            //throw error
+            //throw error 500
         }
         else if (m_pid == 0)
         {
@@ -243,12 +244,17 @@ namespace ft
             dup2(m_pipe_from_cgi[1], 1);
             close(m_pipe_from_cgi[0]);
             close(m_pipe_from_cgi[1]);
-            sleep(60);
-            _exit(0);
-            //execve
+			//execve
+
+			if (execve(argv[0], argv, envp) == -1)
+			{
+				//error 500;
+			}
+			_exit(-1);
         }
         else if (m_pid > 0) {
             //this
+			std::time(&m_timer);
             close(m_pipe_to_cgi[0]);
             close(m_pipe_from_cgi[1]);
 
@@ -257,7 +263,7 @@ namespace ft
 //                if (std::time(NULL) - m_timer > 15)
 //                {
 //                    std::cout << "time out\n";
-//                    kill(m_pid, SIGKILL);
+//                    kill(m_pid, SIGKILL); // throw error 504
 //                    break;
 //                }
 //            }
