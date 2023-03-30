@@ -119,12 +119,14 @@ namespace ft
 
         parse_uri(m_uri);
 
-	  	if (m_st_uri.path.size() >= 4)
-	  	{
-			std::string	fr = m_st_uri.path.substr(m_st_uri.path.size() - 4, 4);
-			if (fr == ".cgi")
-			  	m_cgi = true;
-	  	}
+		if (m_st_uri.path.find(".cgi") != std::string::npos)
+			m_cgi = true;
+//	  	if (m_st_uri.path.size() >= 4)
+//	  	{
+//			std::string	fr = m_st_uri.path.substr(m_st_uri.path.size() - 4, 4);
+//			if (fr == ".cgi")
+//			  	m_cgi = true;
+//	  	}
     }
 
     bool HttpReqHeader::isValid(const std::vector<CfgCtx>& configs)
