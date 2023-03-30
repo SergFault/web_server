@@ -15,6 +15,8 @@
 #include <exception>
 #include <sys/wait.h>
 
+#include <cstdlib>
+
 #define BUFF_SIZE 1024
 
 namespace ft
@@ -120,7 +122,17 @@ namespace ft
         time_t  m_timer;
         int     m_pipe_to_cgi[2];
         int     m_pipe_from_cgi[2];
+        std::string m_cgi_response;
+        bool    m_isDone;
+        size_t  m_content_length;
+        std::stringstream m_ss;
+
     public:
-        InputCgiPostHandler(int fd, size_t length, const std::string& body, const std::string& query);
+        InputCgiPostHandler(int fd, size_t length, const std::string& query, const std::string& path);
+
+        virtual bool IsDone() const;
+
+        virtual void ProcessInput();
+
     };
 }   //namespace ft

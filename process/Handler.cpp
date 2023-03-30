@@ -221,15 +221,22 @@ namespace ft
         return m_isDone;
     }
 
-    InputCgiPostHandler::InputCgiPostHandler(int fd, size_t length, const std::string &remain,
-                                             const std::string &query)
+    InputCgiPostHandler::InputCgiPostHandler(int fd, size_t length,
+                                             const std::string &query, const std::string& path)
+                                             :  m_isDone(false),
+                                                m_content_length(length)
     {
+        m_ss << query;
         pipe(m_pipe_to_cgi);
         pipe(m_pipe_from_cgi);
 
 		char* envp[5];//set CONTENT_LENGTH CONTENT_TYPE QUERY_STRING REQUEST_METHOD PATH_INFO PATH_TRANSLATED
 		char* argv[2];
+        argv[0] = strdup(path.c_str());
 		argv[1] = NULL;
+        std::stringstream ss;
+        ss << length;
+        envp[0] = strdup(("CONTENT_LENGTH=" + ss.str()).c_str());
         m_pid = fork();
         if (m_pid == -1)
         {
@@ -257,7 +264,6 @@ namespace ft
 			std::time(&m_timer);
             close(m_pipe_to_cgi[0]);
             close(m_pipe_from_cgi[1]);
-
 //            while (1)
 //            {
 //                if (std::time(NULL) - m_timer > 15)
@@ -268,5 +274,17 @@ namespace ft
 //                }
 //            }
         }
+    }
+
+    void InputCgiPostHandler::ProcessInput()
+    {
+        if (!m_isDone)
+        {
+
+        }
+    }
+
+    bool InputCgiPostHandler::IsDone() const {
+        return m_isDone;
     }
 }   //namespace ft
