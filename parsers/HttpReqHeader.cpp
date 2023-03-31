@@ -119,8 +119,17 @@ namespace ft
 
         parse_uri(m_uri);
 
-		if (m_st_uri.path.find(".cgi") != std::string::npos)
+		if (size_t cgi = m_st_uri.path.find(".cgi") != std::string::npos)
+		{
 			m_cgi = true;
+			m_st_uri.path_info = m_st_uri.path.substr(cgi + 4);
+			if (!m_st_uri.path_info.empty())
+			{
+				m_st_uri.path = m_st_uri.path.substr(0, cgi + 4);
+				if (*m_st_uri.path_info.rbegin() == '/')
+					m_st_uri.path_info.erase(m_st_uri.path_info.size() - 1);
+			}
+		}
 //	  	if (m_st_uri.path.size() >= 4)
 //	  	{
 //			std::string	fr = m_st_uri.path.substr(m_st_uri.path.size() - 4, 4);
@@ -223,6 +232,7 @@ namespace ft
         res.query = m_st_uri.query;
         res.fragment = m_st_uri.fragment;
         res.path = m_st_uri.path;
+		res.path_info = m_st_uri.path_info;
         res.method = m_method;
         res.host = m_host;
         res.port = atoi(m_port.c_str());

@@ -56,6 +56,7 @@ namespace ft
         std::string hostname;
         std::string port;
         std::string path;
+		std::string path_info;
         std::string query;//std::map<std::string, std::string>    query;
         std::string fragment;
     };
@@ -66,6 +67,7 @@ namespace ft
         std::string host;
         size_t      port;
         std::string path;
+		std::string path_info;
 
         std::string query;//std::map<std::string, std::string> query;
         std::string fragment;
