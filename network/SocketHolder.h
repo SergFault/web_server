@@ -30,6 +30,8 @@ enum ProcessStatus
 {
     ReadRequest,
     ReadBody,
+	PrepareCgi,
+	ProcessCgi,
     WriteRequest,
     Done
 };
@@ -59,6 +61,8 @@ private:
     // void SetNextState();
     void AccumulateRequest();
     void HandleBody(void);
+	void SetCgi();
+	void HandleCgi();
     // bool m_req_done = false;
 
     /* whole request as string */
@@ -95,9 +99,12 @@ private:
 	std::string m_curPath;
 	std::string m_file;
 
+	char* m_envp[13];
+	char* m_argv[2];
 
 	CfgCtx m_vServer;
 	std::string m_location;
+	std::string m_body;
     /* configs */
     const std::vector<CfgCtx>& m_configs;
 };

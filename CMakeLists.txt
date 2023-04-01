@@ -14,7 +14,7 @@ add_executable(${EXEC_NAME} main.cpp
                             parsers/ConfigParser.cpp
                             process/Handler.cpp
                             parsers/HttpReqHeader.cpp
-                            )
+        utils/utils.hpp)
 
 # target_compile_options(server PRIVATE "-fsanitize=address")
 # target_link_options(server PRIVATE "-fsanitize=address")

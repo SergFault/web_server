@@ -66,6 +66,7 @@ namespace ft
         std::string method;
         std::string host;
         size_t      port;
+		std::string port_str;
         std::string path;
 		std::string path_info;
 

@@ -230,13 +230,6 @@ namespace ft
         pipe(m_pipe_to_cgi);
         pipe(m_pipe_from_cgi);
 
-		char* envp[5];//set CONTENT_LENGTH CONTENT_TYPE QUERY_STRING REQUEST_METHOD PATH_INFO PATH_TRANSLATED
-		char* argv[2];
-        argv[0] = strdup(path.c_str());
-		argv[1] = NULL;
-        std::stringstream ss;
-        ss << length;
-        envp[0] = strdup(("CONTENT_LENGTH=" + ss.str()).c_str());
         m_pid = fork();
         if (m_pid == -1)
         {
@@ -253,10 +246,10 @@ namespace ft
             close(m_pipe_from_cgi[1]);
 			//execve
 
-			if (execve(argv[0], argv, envp) == -1)
-			{
-				//error 500;
-			}
+//			if (execve(argv[0], argv, envp) == -1)
+//			{
+//				//error 500;
+//			}
 			_exit(-1);
         }
         else if (m_pid > 0) {

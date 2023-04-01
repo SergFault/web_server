@@ -235,6 +235,7 @@ namespace ft
 		res.path_info = m_st_uri.path_info;
         res.method = m_method;
         res.host = m_host;
+		res.port_str = m_port;
         res.port = atoi(m_port.c_str());
         res.cont_length = atoi(m_content_length.c_str());
         res.keep_alive = m_keep_alive;

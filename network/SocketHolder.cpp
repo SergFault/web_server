@@ -2,6 +2,7 @@
 #include <arpa/inet.h>
 #include <bitset>
 #include <fcntl.h>
+#include "../utils/utils.hpp"//
 
 #define CHUNKED_HEADER "HTTP/1.1 200 OK\r\n"\
 "Transfer-Encoding: chunked\r\n"\
@@ -191,16 +192,24 @@ std::string SocketHolder::read()
 
 void SocketHolder::ProcessRead()
 {
-    if (m_procStatus == ReadRequest)
-    {
-        std::cout << "  socket #" << m_file_descriptor << " AccumulateRequest" << std::endl;
-        AccumulateRequest();
-    }
-    else if (m_procStatus == ReadBody)
-    {
-        std::cout << "  socket #" << m_file_descriptor << " HandleBody" << std::endl;
+	if (m_procStatus == ReadRequest)
+	{
+		std::cout << "  socket #" << m_file_descriptor << " AccumulateRequest" << std::endl;
+		AccumulateRequest();
+	}
+	else if (m_procStatus == ReadBody)
+	{
+		std::cout << "  socket #" << m_file_descriptor << " HandleBody" << std::endl;
 		HandleBody();
-    }
+	}
+//	else if (m_procStatus == PrepareCgi)
+//	{
+//		SetCgi();
+//	}
+//	else if (m_procStatus == ProcessCgi)
+//	{
+//
+//	}
 
 }
 
@@ -218,7 +227,7 @@ void SocketHolder::ProcessWrite()
 {
 
     /* to do make desition depending on state*/
-    if (true)
+    if (m_procStatus == WriteRequest)
     {
         InitWriteHandler();
         m_writeHandler->ProcessOutput();
@@ -228,6 +237,10 @@ void SocketHolder::ProcessWrite()
             m_procStatus = Done;
         }
     }
+	else if (m_procStatus == PrepareCgi)
+	{
+		SetCgi();
+	}
 }
 
 Shared_ptr<SocketHolder> SocketHolder::accept()
@@ -315,7 +328,10 @@ void SocketHolder::AccumulateRequest()
         }
 		else if (m_reqHeader->get_req_headers().method == "GET")
         {
-			m_procStatus = WriteRequest;
+			if (m_reqHeader->get_req_headers().is_cgi)
+				m_procStatus = PrepareCgi;
+			else
+				m_procStatus = WriteRequest;
         }
 
 		SetVServer();
@@ -365,29 +381,33 @@ void SocketHolder::AccumulateRequest()
      m_bodyHandler->ProcessInput();
      if (m_bodyHandler->IsDone())
      {
-		 if (!m_reqHeader->get_req_headers().boundary.empty())
+		 m_body = dynamic_cast<InputLengthHandler *>(m_bodyHandler.get())->GetRes();
+		 if (!m_reqHeader->get_req_headers().is_cgi && !m_reqHeader->get_req_headers().boundary.empty())
 		 {
 			 std::string filename;
 
 			 size_t begin, end;
-			 std::string s = dynamic_cast<InputLengthHandler *>(m_bodyHandler.get())->GetRes();
+			 //std::string s = dynamic_cast<InputLengthHandler *>(m_bodyHandler.get())->GetRes();
 
-			 begin = s.find("; filename=\"");
+			 begin = m_body.find("; filename=\"");
 
-			 end = s.find("\r\n", begin);
+			 end = m_body.find("\r\n", begin);
 
-			 filename = s.substr(begin + sizeof("; filename="), end - begin - sizeof("; filename=") - 1);
+			 filename = m_body.substr(begin + sizeof("; filename="), end - begin - sizeof("; filename=") - 1);
 
-			 begin = s.find("\r\n\r\n", end) + 4;
-			 end = s.find("--" + m_reqHeader->get_req_headers().boundary, begin);
+			 begin = m_body.find("\r\n\r\n", end) + 4;
+			 end = m_body.find("--" + m_reqHeader->get_req_headers().boundary, begin);
 
 			 std::fstream file(filename.c_str(), std::ios::out);
 			 for (size_t i = begin; i < end; ++i) {
-				 file.put(s[i]);
+				 file.put(m_body[i]);
 			 }
 			 file.close();
 		 }
-		 m_procStatus = WriteRequest;//
+		 if (m_reqHeader->get_req_headers().is_cgi)
+			 m_procStatus = PrepareCgi;
+		 else
+			 m_procStatus = WriteRequest;//
      }
  }
 
@@ -443,10 +463,10 @@ void SocketHolder::SetLocation()
 	if (isdir)
 	{
 		m_file = m_vServer.locations.find(m_location)->second.root
-			+ m_vServer.locations.find(m_location)->second.index;
+			+ "/" + m_vServer.locations.find(m_location)->second.index;
 	}
 	else
-		m_file = m_vServer.locations.find(m_location)->second.root + m_file.substr(1);
+		m_file = m_vServer.locations.find(m_location)->second.root + m_file;//.substr(1);
 
 	std::cout << "[[" << m_file << "]]";
 }
@@ -459,6 +479,55 @@ void SocketHolder::SetMServerIp(const std::string &m_server_ip)
 void SocketHolder::SetMServerPort(const std::string &m_server_port)
 {
 	m_serverPort = m_server_port;
+}
+void SocketHolder::SetCgi()
+{
+	request_headers hdrs = m_reqHeader->get_req_headers();
+	m_envp[0] = strdup("GATEWAY_INTERFACE=CGI/1.1");
+	m_envp[1] = strdup(("PATH_INFO=" + hdrs.path_info).c_str());
+	m_envp[2] = strdup(("QUERY_STRING=" + hdrs.query).c_str());
+	m_envp[3] = strdup(("REQUEST_METHOD=" + hdrs.method).c_str());
+	m_envp[4] = strdup(("SCRIPT_NAME=" + hdrs.path).c_str());
+	m_envp[5] = strdup(("SERVER_NAME=" + hdrs.host).c_str());
+	m_envp[6] = strdup(("SERVER_PORT=" + hdrs.port_str).c_str());
+	m_envp[7] = strdup("SERVER_PROTOCOL=HTTP/1.1");
+	char buf[1024];
+	getcwd(buf, 1024);
+	std::string wd = buf;
+	m_envp[8] = strdup(("PATH_TRANSLATED="
+						+ wd + "/" + m_vServer.locations.find(m_location)->second.root
+						+ hdrs.path_info).c_str());
+	m_envp[9] = strdup(("SCRIPT_FILENAME="
+							+ m_vServer.locations.find(m_location)->second.root
+							+ hdrs.path).c_str());
+	m_envp[10] = strdup(("CONTENT_TYPE=" + hdrs.content_type).c_str());
+	if (hdrs.cont_length != 0)
+		m_envp[11] = strdup(("CONTENT_LENGTH=" + to_string(hdrs.cont_length)).c_str());
+	else if (hdrs.method == "POST")
+	{
+		size_t cont_length = m_body.size();
+		if (cont_length > 0)
+			m_envp[11] = strdup(("CONTENT_LENGTH=" + to_string(cont_length)).c_str());
+	}
+	else
+		m_envp[11] = strdup("CONTENT_LENGTH=");
+	m_envp[12] = NULL;
+
+	m_argv[0] = strdup((m_vServer.locations.find(m_location)->second.root + hdrs.path).c_str());
+	m_argv[1] = NULL;
+
+	m_procStatus = ProcessCgi;
+}
+void SocketHolder::HandleCgi()
+{
+	if (1/*isDone*/)
+	{
+		for (size_t i = 0; m_envp[i] != NULL; ++i)
+		{
+			delete (m_envp[i]);
+		}
+		delete m_argv[0];
+	}
 }
 
 } //namespace ft
