@@ -17,6 +17,9 @@
 
 #include <cstdlib>
 
+#include <sys/types.h>
+#include <csignal>
+
 #define BUFF_SIZE 1024
 
 namespace ft
@@ -64,6 +67,26 @@ namespace ft
 
         virtual void ProcessOutput();
     };
+
+	class OutputRawHandler: public IOutputHandler
+	{
+	private:
+		int m_fd;
+		char m_buf[BUFF_SIZE];
+		bool m_isDone;
+		std::string m_text;
+		std::stringstream m_ss;
+		OutputRawHandler(){};
+
+	public:
+		OutputRawHandler(int fd, const std::string& text);
+
+		virtual bool IsDone() const;
+
+		virtual ~OutputRawHandler();
+
+		virtual void ProcessOutput();
+	};
 
 	class InputLengthHandler: public IInputHandler
 	{
@@ -126,13 +149,15 @@ namespace ft
         bool    m_isDone;
         size_t  m_content_length;
         std::stringstream m_ss;
+		char m_buf[BUFF_SIZE];
 
     public:
-        InputCgiPostHandler(int fd, size_t length, const std::string& query, const std::string& path);
+        InputCgiPostHandler(char** envp[13], char** argv[2], const std::string& query);
 
         virtual bool IsDone() const;
 
         virtual void ProcessInput();
 
+		std::string GetRes() {return m_ss.str();}
     };
 }   //namespace ft

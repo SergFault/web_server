@@ -215,7 +215,12 @@ void SocketHolder::ProcessRead()
 
 void SocketHolder::InitWriteHandler()
 {
-    if (m_writeHandler.get() == NULL)
+	if (m_reqHeader->get_req_headers().is_cgi)
+	{
+		m_writeHandler = Shared_ptr<IOutputHandler>(new OutputRawHandler(m_file_descriptor,
+																		 m_cgi_raw_out));
+	}
+    else if (m_writeHandler.get() == NULL)
     {
         m_writeHandler = Shared_ptr<IOutputHandler>(new OutputChunkedHandler(m_file_descriptor,
                                                     m_file,
@@ -240,6 +245,10 @@ void SocketHolder::ProcessWrite()
 	else if (m_procStatus == PrepareCgi)
 	{
 		SetCgi();
+	}
+	else if (m_procStatus == ProcessCgi)
+	{
+		HandleCgi();
 	}
 }
 
@@ -516,17 +525,21 @@ void SocketHolder::SetCgi()
 	m_argv[0] = strdup((m_vServer.locations.find(m_location)->second.root + hdrs.path).c_str());
 	m_argv[1] = NULL;
 
+	m_cgiHandler = Shared_ptr<IInputHandler>(new InputCgiPostHandler(reinterpret_cast<char ***>(&m_envp), reinterpret_cast<char ***>(&m_argv), hdrs.query));
 	m_procStatus = ProcessCgi;
 }
 void SocketHolder::HandleCgi()
 {
-	if (1/*isDone*/)
+	m_cgiHandler->ProcessInput();
+	if (m_cgiHandler->IsDone())
 	{
 		for (size_t i = 0; m_envp[i] != NULL; ++i)
 		{
 			delete (m_envp[i]);
 		}
 		delete m_argv[0];
+		m_cgi_raw_out = dynamic_cast<InputCgiPostHandler *>(m_cgiHandler.get())->GetRes();
+		m_procStatus = WriteRequest;
 	}
 }
 

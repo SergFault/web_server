@@ -79,6 +79,7 @@ private:
 
      Shared_ptr<IInputHandler> m_bodyHandler;
     Shared_ptr<IOutputHandler> m_writeHandler;
+	Shared_ptr<IInputHandler> m_cgiHandler;
 
 
     int m_file_descriptor;
@@ -105,6 +106,7 @@ private:
 	CfgCtx m_vServer;
 	std::string m_location;
 	std::string m_body;
+	std::string m_cgi_raw_out;
     /* configs */
     const std::vector<CfgCtx>& m_configs;
 };
