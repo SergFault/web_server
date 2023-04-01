@@ -119,7 +119,8 @@ namespace ft
 
         parse_uri(m_uri);
 
-		if (size_t cgi = m_st_uri.path.find(".cgi") != std::string::npos)
+	size_t cgi;
+	if ((cgi = m_st_uri.path.find(".cgi")) != std::string::npos)
 		{
 			m_cgi = true;
 			m_st_uri.path_info = m_st_uri.path.substr(cgi + 4);
@@ -129,6 +130,8 @@ namespace ft
 				if (*m_st_uri.path_info.rbegin() == '/')
 					m_st_uri.path_info.erase(m_st_uri.path_info.size() - 1);
 			}
+			std::cout << "path:" << m_st_uri.path << std::endl;
+			std::cout << "path_info:" << m_st_uri.path_info << std::endl;
 		}
 //	  	if (m_st_uri.path.size() >= 4)
 //	  	{

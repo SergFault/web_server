@@ -152,7 +152,7 @@ namespace ft
 		char m_buf[BUFF_SIZE];
 
     public:
-        InputCgiPostHandler(char** envp[13], char** argv[2], const std::string& query);
+        InputCgiPostHandler(char* envp[13], char* argv[2], const std::string& query);
 
         virtual bool IsDone() const;
 

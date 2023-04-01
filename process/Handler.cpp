@@ -96,7 +96,7 @@ namespace ft
 				m_text = m_text.substr(cnt, m_text.size() - cnt);
 			else
 				m_text.clear();
-			if (m_ss.str().empty())
+			if (m_text.empty())
 				m_isDone = true;
 		}
 	}
@@ -253,7 +253,7 @@ namespace ft
         return m_isDone;
     }
 
-    InputCgiPostHandler::InputCgiPostHandler(char** envp[13], char** argv[2],
+    InputCgiPostHandler::InputCgiPostHandler(char* envp[13], char* argv[2],
                                              const std::string &query)
                                              :  m_isDone(false)
     {
@@ -277,7 +277,7 @@ namespace ft
             close(m_pipe_from_cgi[1]);
 			//execve
 
-			if (execve((*argv)[0], *argv, *envp) == -1)
+			if (execve(argv[0], argv, envp) == -1)
 			{
 				//error 500;
 			}
@@ -288,6 +288,7 @@ namespace ft
 			std::time(&m_timer);
             close(m_pipe_to_cgi[0]);
             close(m_pipe_from_cgi[1]);
+	    //sleep(2);
 //            while (1)
 //            {
 //                if (std::time(NULL) - m_timer > 15)
@@ -313,17 +314,23 @@ namespace ft
 					kill(m_pid, SIGKILL); // throw error 504
 					m_isDone = true;
 				}
-				size_t len = read(m_pipe_from_cgi[1], m_buf, BUFF_SIZE);
-				m_ss.write(m_buf, len);
+				ssize_t len = read(m_pipe_from_cgi[1], m_buf, BUFF_SIZE);
+				if (len > 0)
+				  m_ss.write(m_buf, len);
+				return;
 			}
-			else
-			{
-				size_t len = read(m_pipe_from_cgi[0], m_buf, BUFF_SIZE);
-				m_ss.write(m_buf, len);
-				close(m_pipe_from_cgi[0]);
-				close(m_pipe_to_cgi[1]);
-				m_isDone = true;
-			}
+			
+			
+				ssize_t len = read(m_pipe_from_cgi[0], m_buf, BUFF_SIZE);
+				if (len > 0)
+				  m_ss.write(m_buf, len);
+				if (len == 0)
+				{
+				  close(m_pipe_from_cgi[0]);
+				  close(m_pipe_to_cgi[1]);
+				  m_isDone = true;
+				}
+			
         }
     }
 

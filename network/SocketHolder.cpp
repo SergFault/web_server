@@ -455,13 +455,18 @@ void SocketHolder::SetLocation()
 	m_file = m_reqHeader->get_req_headers().path;
 	bool isdir = m_reqHeader->get_req_headers().is_req_folder;
 
+	std::cout << "m_file:{" << m_file << "}" << std::endl;
+	
 	std::set<std::string>::reverse_iterator it;
 
 	for (it = m_vServer.location_paths.rbegin(); it != m_vServer.location_paths.rend(); ++it)
 	{
 		std::cout << "m_file " << m_file << " | location: " << *it << std::endl;
 		if (m_file.find(*it) != std::string::npos)
+		{
 			m_location = *it;
+			break;
+		}
 	}
 
 	if (m_location.empty())
@@ -525,7 +530,7 @@ void SocketHolder::SetCgi()
 	m_argv[0] = strdup((m_vServer.locations.find(m_location)->second.root + hdrs.path).c_str());
 	m_argv[1] = NULL;
 
-	m_cgiHandler = Shared_ptr<IInputHandler>(new InputCgiPostHandler(reinterpret_cast<char ***>(&m_envp), reinterpret_cast<char ***>(&m_argv), hdrs.query));
+	m_cgiHandler = Shared_ptr<IInputHandler>(new InputCgiPostHandler(m_envp, m_argv, hdrs.query));
 	m_procStatus = ProcessCgi;
 }
 void SocketHolder::HandleCgi()
