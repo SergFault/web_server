@@ -253,12 +253,12 @@ namespace ft
         return m_isDone;
     }
 
-    InputCgiPostHandler::InputCgiPostHandler(char* envp[13], char* argv[2],
+    InputCgiPostHandler::InputCgiPostHandler(char** envp, char** argv,
                                              const std::string &query)
                                              :  m_isDone(false),
 											 	m_forkIsDone(false)
     {
-        m_ss << query;
+        m_str = query;
         pipe(m_pipe_to_cgi);
         pipe(m_pipe_from_cgi);
 
@@ -323,10 +323,20 @@ namespace ft
 				}
 			}
 
+			if (!m_str.empty())
+			{
+				ssize_t written = write(m_pipe_to_cgi[1], m_str.c_str(),
+										m_str.size() < BUFF_SIZE ? m_str.size() : BUFF_SIZE);
+				if (written > 0)
+				{
+					m_str = m_str.substr(written);
+				}
+			}
+
 			ssize_t len = read(m_pipe_from_cgi[0], m_buf, BUFF_SIZE);
 			if (len > 0)
 				m_ss.write(m_buf, len);
-			if (len == 0)
+			if (len == 0 && m_str.empty())
 			{
 				close(m_pipe_from_cgi[0]);
 				close(m_pipe_to_cgi[1]);
@@ -339,7 +349,7 @@ namespace ft
         return m_isDone;
     }
 
-	InputCgiGetHandler::InputCgiGetHandler(char *envp[13], char *argv[2])
+	InputCgiGetHandler::InputCgiGetHandler(char **envp, char **argv)
 	{
 		pipe(m_pipe_from_cgi);
 

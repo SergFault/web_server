@@ -150,7 +150,7 @@ void Server::Run()
         /* READ REQ */
         for (std::vector< Shared_ptr<SocketHolder> > ::iterator it = m_rwSockets.begin(); it != m_rwSockets.end(); it++)
         {
-            if ( FD_ISSET( (*it)->getFd(), &readFd) )
+            if ( FD_ISSET( (*it)->getFd(), &readFd) && (((*it)->getStatus() == ReadRequest || ((*it)->getStatus() == ReadBody))))
             {
                 std::cout << "socket #" << (*it)->getFd() << " SELECT READ" << std::endl;
                 // std::cout << "RW SOCKET mark YES-READ " << (*it)->getFd() << std::endl;

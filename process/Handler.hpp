@@ -151,9 +151,10 @@ namespace ft
 		bool	m_forkIsDone;
         std::stringstream m_ss;
 		char m_buf[BUFF_SIZE];
+		std::string m_str;
 
     public:
-        InputCgiPostHandler(char* envp[13], char* argv[2], const std::string& query);
+        InputCgiPostHandler(char** envp, char** argv, const std::string& query);
 
         virtual bool IsDone() const;
 
@@ -176,7 +177,7 @@ namespace ft
 		char m_buf[BUFF_SIZE];
 
 	public:
-		InputCgiGetHandler(char* envp[13], char* argv[2]);
+		InputCgiGetHandler(char** envp, char** argv);
 
 		virtual bool IsDone() const;
 
