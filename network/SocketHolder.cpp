@@ -530,7 +530,10 @@ void SocketHolder::SetCgi()
 	m_argv[0] = strdup((m_vServer.locations.find(m_location)->second.root + hdrs.path).c_str());
 	m_argv[1] = NULL;
 
-	m_cgiHandler = Shared_ptr<IInputHandler>(new InputCgiPostHandler(m_envp, m_argv, hdrs.query));
+	if (hdrs.method == "POST")
+		m_cgiHandler = Shared_ptr<IInputHandler>(new InputCgiPostHandler(m_envp, m_argv, hdrs.query));
+	else if (hdrs.method == "GET")
+		m_cgiHandler = Shared_ptr<IInputHandler>(new InputCgiGetHandler(m_envp, m_argv));
 	m_procStatus = ProcessCgi;
 }
 void SocketHolder::HandleCgi()
@@ -543,7 +546,7 @@ void SocketHolder::HandleCgi()
 			delete (m_envp[i]);
 		}
 		delete m_argv[0];
-		m_cgi_raw_out = dynamic_cast<InputCgiPostHandler *>(m_cgiHandler.get())->GetRes();
+		m_cgi_raw_out = dynamic_cast<InputCgiGetHandler *>(m_cgiHandler.get())->GetRes();
 		m_procStatus = WriteRequest;
 	}
 }

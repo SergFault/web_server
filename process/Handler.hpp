@@ -148,6 +148,7 @@ namespace ft
         std::string m_cgi_response;
         bool    m_isDone;
         size_t  m_content_length;
+		bool	m_forkIsDone;
         std::stringstream m_ss;
 		char m_buf[BUFF_SIZE];
 
@@ -160,4 +161,27 @@ namespace ft
 
 		std::string GetRes() {return m_ss.str();}
     };
+
+	class InputCgiGetHandler: public IInputHandler
+	{
+	private:
+		pid_t   m_pid;
+		time_t  m_timer;
+		int     m_pipe_from_cgi[2];
+		std::string m_cgi_response;
+		bool    m_isDone;
+		size_t  m_content_length;
+		bool	m_forkIsDone;
+		std::stringstream m_ss;
+		char m_buf[BUFF_SIZE];
+
+	public:
+		InputCgiGetHandler(char* envp[13], char* argv[2]);
+
+		virtual bool IsDone() const;
+
+		virtual void ProcessInput();
+
+		std::string GetRes() {return m_ss.str();}
+	};
 }   //namespace ft

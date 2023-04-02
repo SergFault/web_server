@@ -255,7 +255,8 @@ namespace ft
 
     InputCgiPostHandler::InputCgiPostHandler(char* envp[13], char* argv[2],
                                              const std::string &query)
-                                             :  m_isDone(false)
+                                             :  m_isDone(false),
+											 	m_forkIsDone(false)
     {
         m_ss << query;
         pipe(m_pipe_to_cgi);
@@ -288,16 +289,8 @@ namespace ft
 			std::time(&m_timer);
             close(m_pipe_to_cgi[0]);
             close(m_pipe_from_cgi[1]);
-	    //sleep(2);
-//            while (1)
-//            {
-//                if (std::time(NULL) - m_timer > 15)
-//                {
-//                    std::cout << "time out\n";
-//                    kill(m_pid, SIGKILL); // throw error 504
-//                    break;
-//                }
-//            }
+			fcntl(m_pipe_to_cgi[1], F_SETFL, O_NONBLOCK);
+			fcntl(m_pipe_from_cgi[0], F_SETFL, O_NONBLOCK);
         }
     }
 
@@ -305,36 +298,116 @@ namespace ft
     {
 		int status;
         if (!m_isDone)
-        {
-			if (waitpid(m_pid, &status, WNOHANG) != m_pid)
+		{
+			if (!m_forkIsDone)
 			{
-				if (std::time(NULL) - m_timer > 15)
+				if (waitpid(m_pid, &status, WNOHANG) != m_pid)
 				{
-					std::cout << "time out\n";
-					kill(m_pid, SIGKILL); // throw error 504
-					m_isDone = true;
+					if (std::time(NULL) - m_timer > 15)
+					{
+						std::cout << "time out\n";
+						kill(m_pid, SIGKILL); // throw error 504
+						m_isDone = true;
+						close(m_pipe_from_cgi[0]);
+						close(m_pipe_to_cgi[1]);
+						return;
+					}
+//					ssize_t len = read(m_pipe_from_cgi[1], m_buf, BUFF_SIZE);
+//					if (len > 0)
+//						m_ss.write(m_buf, len);
+//					return;
 				}
-				ssize_t len = read(m_pipe_from_cgi[1], m_buf, BUFF_SIZE);
-				if (len > 0)
-				  m_ss.write(m_buf, len);
-				return;
+				else
+				{
+					m_forkIsDone = true;
+				}
 			}
-			
-			
-				ssize_t len = read(m_pipe_from_cgi[0], m_buf, BUFF_SIZE);
-				if (len > 0)
-				  m_ss.write(m_buf, len);
-				if (len == 0)
-				{
-				  close(m_pipe_from_cgi[0]);
-				  close(m_pipe_to_cgi[1]);
-				  m_isDone = true;
-				}
-			
+
+			ssize_t len = read(m_pipe_from_cgi[0], m_buf, BUFF_SIZE);
+			if (len > 0)
+				m_ss.write(m_buf, len);
+			if (len == 0)
+			{
+				close(m_pipe_from_cgi[0]);
+				close(m_pipe_to_cgi[1]);
+				m_isDone = true;
+			}
         }
     }
 
     bool InputCgiPostHandler::IsDone() const {
         return m_isDone;
     }
+
+	InputCgiGetHandler::InputCgiGetHandler(char *envp[13], char *argv[2])
+	{
+		pipe(m_pipe_from_cgi);
+
+		m_pid = fork();
+		if (m_pid == -1)
+		{
+			//throw error 500
+		}
+		else if (m_pid == 0)
+		{
+			//fork
+			dup2(m_pipe_from_cgi[1], 1);
+			close(m_pipe_from_cgi[0]);
+			close(m_pipe_from_cgi[1]);
+			//execve
+
+			if (execve(argv[0], argv, envp) == -1)
+			{
+				//error 500;
+			}
+			_exit(-1);
+		}
+		else if (m_pid > 0) {
+			//this
+			std::time(&m_timer);
+			close(m_pipe_from_cgi[1]);
+			fcntl(m_pipe_from_cgi[0], F_SETFL, O_NONBLOCK);
+		}
+	}
+
+	void InputCgiGetHandler::ProcessInput()
+	{
+		int status;
+		if (!m_isDone)
+		{
+			if (!m_forkIsDone)
+			{
+				if (waitpid(m_pid, &status, WNOHANG) != m_pid)
+				{
+					if (std::time(NULL) - m_timer > 15)
+					{
+						std::cout << "time out\n";
+						kill(m_pid, SIGKILL); // throw error 504
+						m_isDone = true;
+						close(m_pipe_from_cgi[0]);
+						return;
+					}
+				}
+				else
+				{
+					m_forkIsDone = true;
+				}
+			}
+
+			ssize_t len = read(m_pipe_from_cgi[0], m_buf, BUFF_SIZE);
+			if (len > 0)
+				m_ss.write(m_buf, len);
+			if (len == 0)
+			{
+				close(m_pipe_from_cgi[0]);
+				m_isDone = true;
+			}
+		}
+	}
+
+	bool InputCgiGetHandler::IsDone() const
+	{
+		return m_isDone;
+	}
+
 }   //namespace ft
