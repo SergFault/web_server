@@ -107,6 +107,8 @@ private:
 	std::string m_location;
 	std::string m_body;
 	std::string m_cgi_raw_out;
+
+    int m_res;
     /* configs */
     const std::vector<CfgCtx>& m_configs;
 };

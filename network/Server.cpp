@@ -97,9 +97,11 @@ void Server::initReadWriteSets(fd_set &read, fd_set &write)
 
     for (std::vector< Shared_ptr<SocketHolder> >::iterator it = m_rwSockets.begin(); it != m_rwSockets.end(); it++)
     {
-        FD_SET((*it)->getFd(), &write);
-        FD_SET((*it)->getFd(), &read);
-
+        if ((*it)->getFd() > 0)
+        {
+            FD_SET((*it)->getFd(), &write);
+            FD_SET((*it)->getFd(), &read);
+        }
         if (m_maxSelectFd <= (*it)->getFd())
         {
             m_maxSelectFd = (*it)->getFd() + 1;

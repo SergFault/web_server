@@ -254,12 +254,11 @@ void SocketHolder::ProcessWrite()
 
 Shared_ptr<SocketHolder> SocketHolder::accept()
 {
-    int res = ::accept(m_file_descriptor, &m_hostSockAdd, &m_hostSockAddrLen);
+    m_res = ::accept(m_file_descriptor, &m_hostSockAdd, &m_hostSockAddrLen);
 
     // std::cout << res << std::endl;
-
     // SocketHolder sock(res);
-    Shared_ptr<SocketHolder> sock(new SocketHolder(res, m_configs));
+    Shared_ptr<SocketHolder> sock(new SocketHolder(m_res, m_configs));
 
     // std::cout << "Status::: " << std::endl;
 
@@ -279,8 +278,50 @@ Shared_ptr<SocketHolder> SocketHolder::accept()
 	}
     else
     {
+        switch (errno)
+        {
+            case EAGAIN:
+                std::cout << "errno: EAGAIN\n";
+                break;
+            case EBADF:
+                std::cout << "errno: EBADF\n";
+                break;
+            case ECONNABORTED:
+                std::cout << "errno: ECONNABORTED\n";
+                break;
+            case EINTR:
+                std::cout << "errno: EINTR\n";
+                break;
+            case EINVAL:
+                std::cout << "errno: EINVAL\n";
+                break;
+            case EMFILE:
+                std::cout << "errno: EMFILE\n";
+                break;
+            case ENFILE:
+                std::cout << "errno: ENFILE\n";
+                break;
+            case ENOTSOCK:
+                std::cout << "errno: ENOTSOCK\n";
+                break;
+            case EOPNOTSUPP:
+                std::cout << "errno: EOPNOTSUPP\n";
+                break;
+            case ENOBUFS:
+                std::cout << "errno: ENOBUFS\n";
+                break;
+            case ENOMEM:
+                std::cout << "errno: ENOMEM\n";
+                break;
+            case EPROTO:
+                std::cout << "errno: EPROTO\n";
+                break;
+            default:
+                std::cout << "errno: default\n";
+                break;
+        }
     // std::cout << reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)-> << std::endl;
-        throw std::runtime_error("Error accepting socket");
+        //throw std::runtime_error("Error accepting socket");
     }
 
     return sock;
@@ -338,7 +379,7 @@ void SocketHolder::AccumulateRequest()
 		else if (m_reqHeader->get_req_headers().method == "GET")
         {
 			if (m_reqHeader->get_req_headers().is_cgi)
-				m_procStatus = PrepareCgi;
+				m_procStatus = ProcessCgi;//PrepareCgi;
 			else
 				m_procStatus = WriteRequest;
         }
@@ -414,7 +455,7 @@ void SocketHolder::AccumulateRequest()
 			 file.close();
 		 }
 		 if (m_reqHeader->get_req_headers().is_cgi)
-			 m_procStatus = PrepareCgi;
+			 m_procStatus = ProcessCgi;//PrepareCgi;
 		 else
 			 m_procStatus = WriteRequest;//
      }
@@ -532,31 +573,33 @@ void SocketHolder::SetCgi()
 
 	if (hdrs.method == "POST")
 		m_cgiHandler = Shared_ptr<IInputHandler>(new InputCgiPostHandler(m_envp, m_argv,
-																		 m_body));
+																		 m_body, m_file_descriptor));
 	else if (hdrs.method == "GET")
-		m_cgiHandler = Shared_ptr<IInputHandler>(new InputCgiGetHandler(m_envp, m_argv));
+		m_cgiHandler = Shared_ptr<IInputHandler>(new InputCgiGetHandler(m_envp, m_argv, m_file_descriptor));
 	m_procStatus = ProcessCgi;
 }
 void SocketHolder::HandleCgi()
 {
-	m_cgiHandler->ProcessInput();
-	if (m_cgiHandler->IsDone())
+	//m_cgiHandler->ProcessInput();
+	if (true)//m_cgiHandler->IsDone())
 	{
-		for (size_t i = 0; m_envp[i] != NULL; ++i)
-		{
-			delete (m_envp[i]);
-		}
-		delete m_argv[0];
+//		for (size_t i = 0; m_envp[i] != NULL; ++i)
+//		{
+//			delete (m_envp[i]);
+//		}
+//		delete m_argv[0];
 		if (m_reqHeader->get_req_headers().method == "GET")
-			m_cgi_raw_out = dynamic_cast<InputCgiGetHandler *>(m_cgiHandler.get())->GetRes();
+            m_cgi_raw_out = "HTTP/1.1 200 OK\r\nContent-Length: 6\r\n\r\nHello\n";
+			//m_cgi_raw_out = dynamic_cast<InputCgiGetHandler *>(m_cgiHandler.get())->GetRes();
 		else
 		{
-			m_cgi_raw_out = dynamic_cast<InputCgiPostHandler *>(m_cgiHandler.get())->GetRes();
-			std::stringstream hdr;
-			hdr << "HTTP/1.1 200 OK\r\nContent-length: ";
-			hdr << m_cgi_raw_out.size();
-			hdr << "\r\n\r\n";
-			m_cgi_raw_out = hdr.str() + m_cgi_raw_out;
+            m_cgi_raw_out = "HTTP/1.1 200 OK\r\nContent-Length: 6\r\n\r\nPostQ\n";
+//            m_cgi_raw_out = dynamic_cast<InputCgiPostHandler *>(m_cgiHandler.get())->GetRes();
+//			std::stringstream hdr;
+//			hdr << "HTTP/1.1 200 OK\r\nContent-length: ";
+//			hdr << m_cgi_raw_out.size();
+//			hdr << "\r\n\r\n";
+//			m_cgi_raw_out = hdr.str() + m_cgi_raw_out;
 		}
 		m_procStatus = WriteRequest;
 	}

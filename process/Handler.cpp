@@ -254,7 +254,7 @@ namespace ft
     }
 
     InputCgiPostHandler::InputCgiPostHandler(char** envp, char** argv,
-                                             const std::string &query)
+                                             const std::string &query, int fd)
                                              :  m_isDone(false),
 											 	m_forkIsDone(false)
     {
@@ -270,6 +270,7 @@ namespace ft
         else if (m_pid == 0)
         {
             //fork
+            close(fd);
             dup2(m_pipe_to_cgi[0], 0);
             close(m_pipe_to_cgi[0]);
             close(m_pipe_to_cgi[1]);
@@ -277,12 +278,18 @@ namespace ft
             close(m_pipe_from_cgi[0]);
             close(m_pipe_from_cgi[1]);
 			//execve
-
-			if (execve(argv[0], argv, envp) == -1)
-			{
-				//error 500;
-			}
-			_exit(-1);
+            std::string str;
+            while (!std::cin.eof())
+                std::cin >> str;
+            std::cout << "HTTP/1.1 200 OK\r\n"\
+		"Content-Length: " << 6 << "\r\n\r\n"
+                      << "postq" << std::endl;
+            _exit(EXIT_SUCCESS);
+//			if (execve(argv[0], argv, envp) == -1)
+//			{
+//				//error 500;
+//			}
+//			_exit(-1);
         }
         else if (m_pid > 0) {
             //this
@@ -336,10 +343,12 @@ namespace ft
 			ssize_t len = read(m_pipe_from_cgi[0], m_buf, BUFF_SIZE);
 			if (len > 0)
 				m_ss.write(m_buf, len);
+            if (m_str.empty())
+                close(m_pipe_to_cgi[1]);
 			if (len == 0 && m_str.empty())
 			{
 				close(m_pipe_from_cgi[0]);
-				close(m_pipe_to_cgi[1]);
+//				close(m_pipe_to_cgi[1]);
 				m_isDone = true;
 			}
         }
@@ -349,7 +358,7 @@ namespace ft
         return m_isDone;
     }
 
-	InputCgiGetHandler::InputCgiGetHandler(char **envp, char **argv)
+	InputCgiGetHandler::InputCgiGetHandler(char **envp, char **argv, int fd)
 	{
 		pipe(m_pipe_from_cgi);
 
@@ -361,16 +370,23 @@ namespace ft
 		else if (m_pid == 0)
 		{
 			//fork
+            close(fd);
+
 			dup2(m_pipe_from_cgi[1], 1);
 			close(m_pipe_from_cgi[0]);
 			close(m_pipe_from_cgi[1]);
-			//execve
 
-			if (execve(argv[0], argv, envp) == -1)
-			{
-				//error 500;
-			}
-			_exit(-1);
+//            sleep(50);
+			//execve
+            std::cout << "HTTP/1.1 200 OK\r\n"\
+		"Content-Length: " << 6 << "\r\n\r\n"
+                      << "Hello" << std::endl;
+            _exit(EXIT_SUCCESS);
+//			if (execve(argv[0], argv, envp) == -1)
+//			{
+//				//error 500;
+//			}
+//			_exit(-1);
 		}
 		else if (m_pid > 0) {
 			//this
@@ -389,7 +405,7 @@ namespace ft
 			{
 				if (waitpid(m_pid, &status, WNOHANG) != m_pid)
 				{
-					if (std::time(NULL) - m_timer > 15)
+					if (std::time(NULL) - m_timer > 55)
 					{
 						std::cout << "time out\n";
 						kill(m_pid, SIGKILL); // throw error 504
