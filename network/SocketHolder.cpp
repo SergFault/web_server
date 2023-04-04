@@ -24,6 +24,7 @@ SocketHolder::SocketHolder(int desc, const std::vector<CfgCtx>& ctxs) :
 {
     m_procStatus = ReadRequest;
     memset(&m_hostSockAdd, 0, sizeof(m_hostSockAdd));
+    m_sh_type = "RW";
 }
 
 int SocketHolder::getFd()
@@ -67,6 +68,7 @@ SocketHolder::SocketHolder(int domain, int type, int protocol, const std::vector
                                                                         m_procStatus(ReadRequest),
                                                                         m_configs(ctxs)
 {
+    m_sh_type = "Listen";
     m_file_descriptor = ::socket(domain, type,  protocol);
     memset(&m_hostSockAdd, 0, sizeof(m_hostSockAdd));
 
@@ -192,6 +194,11 @@ std::string SocketHolder::read()
 
 void SocketHolder::ProcessRead()
 {
+    if (!m_sh_type.empty())
+    {
+        std::cout << m_sh_type << std::endl;
+        m_sh_type.clear();
+    }
 	if (m_procStatus == ReadRequest)
 	{
 		std::cout << "  socket #" << m_file_descriptor << " AccumulateRequest" << std::endl;
@@ -321,7 +328,7 @@ Shared_ptr<SocketHolder> SocketHolder::accept()
                 break;
         }
     // std::cout << reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)-> << std::endl;
-        //throw std::runtime_error("Error accepting socket");
+        throw std::runtime_error("Error accepting socket");
     }
 
     return sock;
@@ -375,11 +382,18 @@ void SocketHolder::AccumulateRequest()
         {
 			m_procStatus = ReadBody;
             InitBodyHandler();
+            if (m_bodyHandler->IsDone())
+            {
+                if (m_reqHeader->get_req_headers().is_cgi)
+                    m_procStatus = PrepareCgi;
+                else
+                    m_procStatus = WriteRequest;
+            }
         }
 		else if (m_reqHeader->get_req_headers().method == "GET")
         {
 			if (m_reqHeader->get_req_headers().is_cgi)
-				m_procStatus = ProcessCgi;//PrepareCgi;
+				m_procStatus = PrepareCgi;
 			else
 				m_procStatus = WriteRequest;
         }
@@ -394,31 +408,26 @@ void SocketHolder::AccumulateRequest()
     //   std::cout << "<<<<<<<<INIT BODYHANDLER" << std::endl;
      if (m_bodyHandler.get() == NULL)
      {
-        if((*m_reqHeader).get_req_headers().cont_length > 0)
+        if(m_reqHeader->get_req_headers().cont_length > 0)
         {
 		 m_bodyHandler = Shared_ptr<IInputHandler>(new InputLengthHandler
 			 (m_file_descriptor, m_reqHeader->get_req_headers().cont_length, m_remainAfterRequest));
          std::cout << "  socket #" << m_file_descriptor << "<<<<<<<<INIT BODYHANDLER InputLengthHandler" << std::endl;
         }
-        else if((*m_reqHeader).get_req_headers().cont_length == 0)
+        else if(m_reqHeader->get_req_headers().cont_length == 0)
         {
-            if ((*m_reqHeader).get_req_headers().is_chunked)
+            if (m_reqHeader->get_req_headers().is_chunked)
             {
-                std::cout << "  socket #" << m_file_descriptor << "<<<<<<<<INIT BODYHANDLER InputLengthHandler" << std::endl;
+                std::cout << "  socket #" << m_file_descriptor << "<<<<<<<<INIT BODYHANDLER InputChunkedHandler" << std::endl;
                 m_bodyHandler = Shared_ptr<IInputHandler>(new InputChunkedHandler
 			        (m_file_descriptor, 1000000));
             }
             else
             {
                 // std::cout << "<<<<<<SET STATUS DONE" << std::endl;
-                std::cout << "  socket #" << m_file_descriptor << "status = Done" << std::endl;
-                m_procStatus = Done;
+                m_bodyHandler = Shared_ptr<IInputHandler>(new InputLengthHandler
+                        (m_file_descriptor, m_reqHeader->get_req_headers().cont_length, m_remainAfterRequest));
             }
-        }
-        else
-        {
-            std::cout << "  socket #" << m_file_descriptor << "status = Done" << std::endl;
-            m_procStatus = Done;
         }
      }
  }
@@ -455,7 +464,7 @@ void SocketHolder::AccumulateRequest()
 			 file.close();
 		 }
 		 if (m_reqHeader->get_req_headers().is_cgi)
-			 m_procStatus = ProcessCgi;//PrepareCgi;
+			 m_procStatus = PrepareCgi;
 		 else
 			 m_procStatus = WriteRequest;//
      }
@@ -580,26 +589,26 @@ void SocketHolder::SetCgi()
 }
 void SocketHolder::HandleCgi()
 {
-	//m_cgiHandler->ProcessInput();
-	if (true)//m_cgiHandler->IsDone())
+	m_cgiHandler->ProcessInput();
+	if (m_cgiHandler->IsDone())
 	{
-//		for (size_t i = 0; m_envp[i] != NULL; ++i)
-//		{
-//			delete (m_envp[i]);
-//		}
-//		delete m_argv[0];
+		for (size_t i = 0; m_envp[i] != NULL; ++i)
+		{
+			delete (m_envp[i]);
+		}
+		delete m_argv[0];
 		if (m_reqHeader->get_req_headers().method == "GET")
-            m_cgi_raw_out = "HTTP/1.1 200 OK\r\nContent-Length: 6\r\n\r\nHello\n";
-			//m_cgi_raw_out = dynamic_cast<InputCgiGetHandler *>(m_cgiHandler.get())->GetRes();
+//            m_cgi_raw_out = "HTTP/1.1 200 OK\r\nContent-Length: 6\r\n\r\nHello\n";
+			m_cgi_raw_out = dynamic_cast<InputCgiGetHandler *>(m_cgiHandler.get())->GetRes();
 		else
 		{
-            m_cgi_raw_out = "HTTP/1.1 200 OK\r\nContent-Length: 6\r\n\r\nPostQ\n";
-//            m_cgi_raw_out = dynamic_cast<InputCgiPostHandler *>(m_cgiHandler.get())->GetRes();
-//			std::stringstream hdr;
-//			hdr << "HTTP/1.1 200 OK\r\nContent-length: ";
-//			hdr << m_cgi_raw_out.size();
-//			hdr << "\r\n\r\n";
-//			m_cgi_raw_out = hdr.str() + m_cgi_raw_out;
+//            m_cgi_raw_out = "HTTP/1.1 200 OK\r\nContent-Length: 6\r\n\r\nPostQ\n";
+            m_cgi_raw_out = dynamic_cast<InputCgiPostHandler *>(m_cgiHandler.get())->GetRes();
+			std::stringstream hdr;
+			hdr << "HTTP/1.1 200 OK\r\nContent-length: ";
+			hdr << m_cgi_raw_out.size();
+			hdr << "\r\n\r\n";
+			m_cgi_raw_out = hdr.str() + m_cgi_raw_out;
 		}
 		m_procStatus = WriteRequest;
 	}

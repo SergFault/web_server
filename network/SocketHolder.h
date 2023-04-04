@@ -108,6 +108,8 @@ private:
 	std::string m_body;
 	std::string m_cgi_raw_out;
 
+    std::string m_sh_type;
+
     int m_res;
     /* configs */
     const std::vector<CfgCtx>& m_configs;

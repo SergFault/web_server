@@ -107,7 +107,7 @@ namespace ft
             m_fd(fd),
             m_lengthLeft(length - remain.size()),
             m_body(remain),
-            m_isDone(false)
+            m_isDone(m_lengthLeft == 0)
     {
         std::cout << "<<<<remain" << remain.size() << std::endl;
         std::cout << "<<<<init" << length - remain.size() << std::endl;
@@ -279,17 +279,17 @@ namespace ft
             close(m_pipe_from_cgi[1]);
 			//execve
             std::string str;
-            while (!std::cin.eof())
-                std::cin >> str;
-            std::cout << "HTTP/1.1 200 OK\r\n"\
-		"Content-Length: " << 6 << "\r\n\r\n"
-                      << "postq" << std::endl;
-            _exit(EXIT_SUCCESS);
-//			if (execve(argv[0], argv, envp) == -1)
-//			{
-//				//error 500;
-//			}
-//			_exit(-1);
+//            while (!std::cin.eof())
+//                std::cin >> str;
+//            std::cout << "HTTP/1.1 200 OK\r\n"\
+//		"Content-Length: " << 6 << "\r\n\r\n"
+//                      << "postq" << std::endl;
+//            _exit(EXIT_SUCCESS);
+			if (execve(argv[0], argv, envp) == -1)
+			{
+				//error 500;
+			}
+			_exit(-1);
         }
         else if (m_pid > 0) {
             //this
@@ -359,6 +359,8 @@ namespace ft
     }
 
 	InputCgiGetHandler::InputCgiGetHandler(char **envp, char **argv, int fd)
+        :
+        m_isDone(false)
 	{
 		pipe(m_pipe_from_cgi);
 
@@ -378,15 +380,15 @@ namespace ft
 
 //            sleep(50);
 			//execve
-            std::cout << "HTTP/1.1 200 OK\r\n"\
-		"Content-Length: " << 6 << "\r\n\r\n"
-                      << "Hello" << std::endl;
-            _exit(EXIT_SUCCESS);
-//			if (execve(argv[0], argv, envp) == -1)
-//			{
-//				//error 500;
-//			}
-//			_exit(-1);
+//            std::cout << "HTTP/1.1 200 OK\r\n"\
+//		"Content-Length: " << 6 << "\r\n\r\n"
+//                      << "Hello" << std::endl;
+//            _exit(EXIT_SUCCESS);
+			if (execve(argv[0], argv, envp) == -1)
+			{
+				//error 500;
+			}
+			_exit(-1);
 		}
 		else if (m_pid > 0) {
 			//this
