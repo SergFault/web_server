@@ -2,16 +2,16 @@
 <HTML lang="en">
 <HEAD>
     <meta charset="utf-8">
-    <TITLE>Пример использования CGI</TITLE>
+    <TITLE>CGI Post Example</TITLE>
 </HEAD>
 
 <BODY>
 <FORM ACTION="http://localhost:8080/cgi-bin/post.cgi" METHOD="POST">
-    <B>Введите свое имя<I>(Фамилию Имя Отчество)</I>:</B>
-    <INPUT name=RealName type=text size=40 maxlength=60 value="Петров Иван Сидорович"><P>
-    Пол: <INPUT name=Sex type=Radio value="Мужской" CHECKED>- мужской <INPUT name=Sex type=Radio value="Женский">-женский<P>
-    <INPUT name=Submit type=submit value="Послать запрос"><BR>
-    <INPUT name=Reset type=reset value="Сброс">
+    <B>Input your name:</B>
+    <INPUT name=RealName type=text size=40 maxlength=60 value="Name"><P>
+    Пол: <INPUT name=Sex type=Radio value="male" CHECKED>- male <INPUT name=Sex type=Radio value="female">- female<P>
+    <INPUT name=Submit type=submit value="Submit"><BR>
+    <INPUT name=Reset type=reset value="Reset">
 
 </FORM>
 </BODY>

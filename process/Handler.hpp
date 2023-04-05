@@ -20,6 +20,8 @@
 #include <sys/types.h>
 #include <csignal>
 
+#include "../utils/utils.hpp"
+
 #define BUFF_SIZE 1024
 
 namespace ft
@@ -102,7 +104,7 @@ namespace ft
         std::string GetRes();
 
 	private:
-		size_t	m_fd;
+		int     m_fd;
 		size_t	m_lengthLeft;
 		bool	m_isDone;
 		size_t	m_counter;
@@ -117,9 +119,7 @@ namespace ft
 	{
 	private:
 		int	    m_fd;
-		size_t	m_max_length;
 		bool	m_isDone;
-		size_t	m_counter;
 		size_t 	m_num;
 		std::stringstream m_body;
 
@@ -129,7 +129,7 @@ namespace ft
 		InputChunkedHandler(){};
 
 	public:
-		InputChunkedHandler(int fd, size_t max_length);
+		InputChunkedHandler(int fd);
 
 		virtual bool IsDone() const;
 		virtual ~InputChunkedHandler() {};
@@ -147,14 +147,18 @@ namespace ft
         int     m_pipe_from_cgi[2];
         std::string m_cgi_response;
         bool    m_isDone;
-        size_t  m_content_length;
 		bool	m_forkIsDone;
         std::stringstream m_ss;
 		char m_buf[BUFF_SIZE];
 		std::string m_str;
+        bool    m_pipe_to_isClosed;
+        bool    m_pipe_from_isClosed;
 
     public:
-        InputCgiPostHandler(char** envp, char** argv, const std::string& query, int fd);
+        InputCgiPostHandler();
+        //InputCgiPostHandler(char** envp, char** argv, const std::string& query, int fd);
+
+        void Init(char** envp, char** argv, const std::string& query, int fd);
 
         virtual bool IsDone() const;
 
@@ -177,7 +181,9 @@ namespace ft
 		char m_buf[BUFF_SIZE];
 
 	public:
-		InputCgiGetHandler(char** envp, char** argv, int fd);
+		InputCgiGetHandler();
+
+        void Init(char** envp, char** argv, int fd);
 
 		virtual bool IsDone() const;
 

@@ -187,7 +187,8 @@ void Server::Run()
 //        }
 
         /* REMOVE DONE FD */
-        for (std::vector< Shared_ptr<SocketHolder> >::iterator it = m_rwSockets.begin(); it != m_rwSockets.end();)
+        for (std::vector< Shared_ptr<SocketHolder> >::iterator it = m_rwSockets.begin();
+                    it != m_rwSockets.end();)
         {
             if ((*it)->getStatus() == Done)
             {
@@ -207,9 +208,6 @@ void Server::Run()
             }
             // it->sendFromRespHandler();
         }
-    
-        //std::cout << "<<<<<<<--------------------------------------------->>>>>>>>>>>>>>>>>" << std::endl << std::endl;
-        // usleep(2000000);
     }
 }
 }

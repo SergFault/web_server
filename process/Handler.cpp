@@ -13,18 +13,18 @@ namespace ft
 
         if (!m_file.is_open())
         {
-            if (errno == ENOENT) {
-                m_file.open("../www/default/error_pages/404.html");
-                m_ss.str("");
-                m_ss << "HTTP/1.1 404 Not found\r\nTransfer-Encoding: chunked\r\nConnection: closed\r\n\r\n";
-            }
-            else
+            switch (errno)
             {
-                m_file.open("../www/default/error_pages/500.html");
-                m_ss.str("");
-                m_ss << "HTTP/1.1 500 Internal server error\r\nTransfer-Encoding: chunked\r\nConnection: closed\r\n\r\n";
+                case ENOENT:
+                    throw NotFound;
+                case EPERM:
+                case EACCES:
+                    throw Forbidden;
+                case 36:
+                    throw ReqUriTooLong;
+                default:
+                    throw IntServerErr;
             }
-            //throw std::runtime_error("FILE NOT OPENED");
         }
 
     }
@@ -37,7 +37,6 @@ namespace ft
     OutputChunkedHandler::~OutputChunkedHandler()
     {
         m_file.close();
-        // std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<CLOSED" << std::endl;
     }
 
     void OutputChunkedHandler::ProcessOutput()
@@ -46,7 +45,6 @@ namespace ft
         {
             if (m_ss.str().empty())
             {
-                // std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<WRITE" << std::endl;
                 m_file.read(m_buf, BUFF_SIZE);
                 std::streamsize size = m_file.gcount();
                 m_ss << std::hex << size;
@@ -58,8 +56,11 @@ namespace ft
                     m_ss << "0\r\n\r\n";
                 }
             }
-            size_t cnt = send(m_fd, m_ss.str().c_str(), m_ss.str().size(), 0);
-//            size_t cnt = write(m_fd, m_ss.str().c_str(), m_ss.str().size());
+            ssize_t cnt = send(m_fd, m_ss.str().c_str(), m_ss.str().size(), 0);
+
+            if (cnt <= 0)
+                throw std::runtime_error("OutputChunkedHandler send error");
+
             if (cnt < m_ss.str().size())
                 m_ss.str(m_ss.str().substr(cnt, m_ss.str().size() - cnt));
             else
@@ -90,8 +91,10 @@ namespace ft
 	{
 		if (!m_isDone)
 		{
-			size_t cnt = send(m_fd, m_text.c_str(),
+			ssize_t cnt = send(m_fd, m_text.c_str(),
 							  m_text.size() > BUFF_SIZE ? BUFF_SIZE : m_text.size(), 0);
+            if (cnt <= 0)
+                throw std::runtime_error("OutputChunkedHandler send error");
 			if (cnt < m_text.size())
 				m_text = m_text.substr(cnt, m_text.size() - cnt);
 			else
@@ -114,7 +117,7 @@ namespace ft
         m_body << remain;
         m_counter = 0;
     }
-    
+
     bool InputLengthHandler::IsDone() const
     {
         return m_isDone;
@@ -122,42 +125,22 @@ namespace ft
 
     void InputLengthHandler::ProcessInput()
     {
-            int readRes;
-            size_t bufferSize = 1024;
-            char buffer[bufferSize];
+            ssize_t readRes;
+            char buffer[BUFF_SIZE];
 
-            int readSize = bufferSize > m_lengthLeft ? m_lengthLeft : bufferSize ;
+            ssize_t readSize = BUFF_SIZE > m_lengthLeft ? m_lengthLeft : BUFF_SIZE;
             readRes = recv(m_fd, buffer, readSize, 0);
-            if (readRes < 0)
+            if (readRes <= 0)
             {
-                // return ;
-                std::stringstream ss;
-                ss << "error socket#" << m_fd;
-                perror(ss.str().c_str());
                 throw std::runtime_error("InputLengthHandler receive error");
             }
-			else if (readRes == 0)
-				m_isDone = true;
 
             m_counter += readRes;
-
-            // std::cout << "read: " << std::endl;
-            // std::cout.write(buffer, bufferSize);
-//            std::cout << "read all: " << m_counter << std::endl;
-//            std::cout << "read: " << readRes << std::endl;
-//            std::cout << "m_lengthLeft: " << m_lengthLeft << std::endl;
-
             m_lengthLeft -= readRes;
-
             m_body.write(buffer, readRes);
 
-//			std::cout << "[[[" << m_body.str() << "]]]" << std::endl;
-
             if (m_lengthLeft == 0)
-            {
-                std::cout << m_body.str() << std::endl;//debug
                 m_isDone = true;
-            }
     }
 
     std::string InputLengthHandler::GetRes()
@@ -169,13 +152,10 @@ namespace ft
 
     // ----------------------------------------------------------------
 
-    InputChunkedHandler::InputChunkedHandler(int fd, size_t max_length) :
+    InputChunkedHandler::InputChunkedHandler(int fd) :
             m_fd(fd),
-            m_max_length(max_length),
             m_isDone(false),
-            m_counter(0),
             m_num(0),
-
             finish(false)
     {
 
@@ -187,14 +167,17 @@ namespace ft
         std::string	body;
         std::string tmp;
         std::stringstream ss;
-        size_t cnt;
+        ssize_t cnt;
         size_t pos;
 
         if (m_num != 0 )
         {
-//			cnt = recv(m_fd, &body, m_num, 0);
             std::fill_n(buf, BUFF_SIZE, '\0');
-            cnt = read(m_fd, buf, m_num < (BUFF_SIZE - 1) ? m_num : (BUFF_SIZE - 1));
+            cnt = recv(m_fd, buf, m_num < (BUFF_SIZE - 1) ? m_num : (BUFF_SIZE - 1), 0);
+            if (cnt <= 0)
+            {
+                throw std::runtime_error("InputChunkedHandler receive error");
+            }
 
             if (m_num - cnt >= 2)
                 m_body << buf;
@@ -253,18 +236,83 @@ namespace ft
         return m_isDone;
     }
 
-    InputCgiPostHandler::InputCgiPostHandler(char** envp, char** argv,
-                                             const std::string &query, int fd)
-                                             :  m_isDone(false),
-											 	m_forkIsDone(false)
+//    InputCgiPostHandler::InputCgiPostHandler(char** envp, char** argv,
+//                                             const std::string &query, int fd)
+//                                             :  m_isDone(false),
+//											 	m_forkIsDone(false)
+//    {
+//        if (pipe(m_pipe_to_cgi) == -1)
+//            throw IntServerErr;
+//        if (pipe(m_pipe_from_cgi) == -1)
+//        {
+//            close(m_pipe_to_cgi[0]);
+//            close(m_pipe_to_cgi[1]);
+//            throw IntServerErr;
+//        }
+//        m_pid = fork();
+//        if (m_pid == -1)
+//        {
+//            close(m_pipe_to_cgi[0]);
+//            close(m_pipe_to_cgi[1]);
+//            close(m_pipe_from_cgi[0]);
+//            close(m_pipe_from_cgi[1]);
+//            throw IntServerErr;
+//            //throw error 500
+//        }
+//        else if (m_pid == 0)
+//        {
+//            //fork
+//            close(fd);
+//            dup2(m_pipe_to_cgi[0], 0);
+//            close(m_pipe_to_cgi[0]);
+//            close(m_pipe_to_cgi[1]);
+//            dup2(m_pipe_from_cgi[1], 1);
+//            close(m_pipe_from_cgi[0]);
+//            close(m_pipe_from_cgi[1]);
+//
+//			if (execve(argv[0], argv, envp) == -1)
+//			{
+//				//error 502;
+//			}
+//			_exit(EXIT_FAILURE);
+//        }
+//        else if (m_pid > 0) {
+//            //this
+//			std::time(&m_timer);
+//            close(m_pipe_to_cgi[0]);
+//            close(m_pipe_from_cgi[1]);
+//			fcntl(m_pipe_to_cgi[1], F_SETFL, O_NONBLOCK);
+//			fcntl(m_pipe_from_cgi[0], F_SETFL, O_NONBLOCK);
+//        }
+//    }
+
+    InputCgiPostHandler::InputCgiPostHandler() :    m_isDone(false),
+                                                    m_forkIsDone(false),
+                                                    m_pipe_from_isClosed(false),
+                                                    m_pipe_to_isClosed(false)
+    {
+    }
+
+    void InputCgiPostHandler::Init(char **envp, char **argv, const std::string &query, int fd)
     {
         m_str = query;
-        pipe(m_pipe_to_cgi);
-        pipe(m_pipe_from_cgi);
 
+        if (pipe(m_pipe_to_cgi) == -1)
+            throw IntServerErr;
+        if (pipe(m_pipe_from_cgi) == -1)
+        {
+            close(m_pipe_to_cgi[0]);
+            close(m_pipe_to_cgi[1]);
+            throw IntServerErr;
+        }
         m_pid = fork();
         if (m_pid == -1)
         {
+            close(m_pipe_to_cgi[0]);
+            close(m_pipe_to_cgi[1]);
+            close(m_pipe_from_cgi[0]);
+            close(m_pipe_from_cgi[1]);
+            throw IntServerErr;
             //throw error 500
         }
         else if (m_pid == 0)
@@ -277,27 +325,20 @@ namespace ft
             dup2(m_pipe_from_cgi[1], 1);
             close(m_pipe_from_cgi[0]);
             close(m_pipe_from_cgi[1]);
-			//execve
-            std::string str;
-//            while (!std::cin.eof())
-//                std::cin >> str;
-//            std::cout << "HTTP/1.1 200 OK\r\n"\
-//		"Content-Length: " << 6 << "\r\n\r\n"
-//                      << "postq" << std::endl;
-//            _exit(EXIT_SUCCESS);
-			if (execve(argv[0], argv, envp) == -1)
-			{
-				//error 500;
-			}
-			_exit(-1);
+
+            if (execve(argv[0], argv, envp) == -1)
+            {
+                //error 502;
+            }
+            _exit(EXIT_FAILURE);
         }
         else if (m_pid > 0) {
             //this
-			std::time(&m_timer);
+            std::time(&m_timer);
             close(m_pipe_to_cgi[0]);
             close(m_pipe_from_cgi[1]);
-			fcntl(m_pipe_to_cgi[1], F_SETFL, O_NONBLOCK);
-			fcntl(m_pipe_from_cgi[0], F_SETFL, O_NONBLOCK);
+            fcntl(m_pipe_to_cgi[1], F_SETFL, O_NONBLOCK);
+            fcntl(m_pipe_from_cgi[0], F_SETFL, O_NONBLOCK);
         }
     }
 
@@ -317,15 +358,18 @@ namespace ft
 						m_isDone = true;
 						close(m_pipe_from_cgi[0]);
 						close(m_pipe_to_cgi[1]);
-						return;
+                        throw GatewayTimeout;
+//						return;
 					}
-//					ssize_t len = read(m_pipe_from_cgi[1], m_buf, BUFF_SIZE);
-//					if (len > 0)
-//						m_ss.write(m_buf, len);
-//					return;
 				}
 				else
 				{
+                    if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_SUCCESS)
+                    {
+                        close(m_pipe_to_cgi[1]);
+                        close(m_pipe_from_cgi[0]);
+                        throw BadGateway;
+                    }
 					m_forkIsDone = true;
 				}
 			}
@@ -338,17 +382,34 @@ namespace ft
 				{
 					m_str = m_str.substr(written);
 				}
+//                else if (written < 0)
+//                {
+//                    if (!m_pipe_to_isClosed)
+//                        close(m_pipe_to_cgi[1]);
+//                    if (!m_pipe_from_isClosed)
+//                        close(m_pipe_from_cgi[0]);
+//                    throw IntServerErr;
+//                }
 			}
 
 			ssize_t len = read(m_pipe_from_cgi[0], m_buf, BUFF_SIZE);
 			if (len > 0)
 				m_ss.write(m_buf, len);
-            if (m_str.empty())
+//            else if (len < 0)
+//            {
+//                close(m_pipe_to_cgi[1]);
+//                close(m_pipe_from_cgi[0]);
+//                throw IntServerErr;
+//            }
+            if (m_str.empty() && !m_pipe_to_isClosed)
+            {
                 close(m_pipe_to_cgi[1]);
+                m_pipe_to_isClosed = true;
+            }
 			if (len == 0 && m_str.empty())
 			{
 				close(m_pipe_from_cgi[0]);
-//				close(m_pipe_to_cgi[1]);
+                m_pipe_from_isClosed = true;
 				m_isDone = true;
 			}
         }
@@ -358,37 +419,35 @@ namespace ft
         return m_isDone;
     }
 
-	InputCgiGetHandler::InputCgiGetHandler(char **envp, char **argv, int fd)
-        :
-        m_isDone(false)
+    InputCgiGetHandler::InputCgiGetHandler() :  m_isDone(false)
+    {}
+
+	void InputCgiGetHandler::Init(char **envp, char **argv, int fd)
 	{
-		pipe(m_pipe_from_cgi);
+		if (pipe(m_pipe_from_cgi) == -1)
+            throw IntServerErr;
 
 		m_pid = fork();
 		if (m_pid == -1)
 		{
+            close(m_pipe_from_cgi[0]);
+            close(m_pipe_from_cgi[1]);
+            throw IntServerErr;
 			//throw error 500
 		}
 		else if (m_pid == 0)
 		{
 			//fork
             close(fd);
-
 			dup2(m_pipe_from_cgi[1], 1);
 			close(m_pipe_from_cgi[0]);
 			close(m_pipe_from_cgi[1]);
 
-//            sleep(50);
-			//execve
-//            std::cout << "HTTP/1.1 200 OK\r\n"\
-//		"Content-Length: " << 6 << "\r\n\r\n"
-//                      << "Hello" << std::endl;
-//            _exit(EXIT_SUCCESS);
 			if (execve(argv[0], argv, envp) == -1)
 			{
-				//error 500;
+				//error 502;
 			}
-			_exit(-1);
+			_exit(EXIT_FAILURE);
 		}
 		else if (m_pid > 0) {
 			//this
@@ -407,17 +466,23 @@ namespace ft
 			{
 				if (waitpid(m_pid, &status, WNOHANG) != m_pid)
 				{
-					if (std::time(NULL) - m_timer > 55)
+					if (std::time(NULL) - m_timer > 15)
 					{
 						std::cout << "time out\n";
 						kill(m_pid, SIGKILL); // throw error 504
 						m_isDone = true;
 						close(m_pipe_from_cgi[0]);
-						return;
+                        throw GatewayTimeout;
+//						return;
 					}
 				}
 				else
 				{
+                    if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_SUCCESS)
+                    {
+                        close(m_pipe_from_cgi[0]);
+                        throw BadGateway;
+                    }
 					m_forkIsDone = true;
 				}
 			}
@@ -425,6 +490,11 @@ namespace ft
 			ssize_t len = read(m_pipe_from_cgi[0], m_buf, BUFF_SIZE);
 			if (len > 0)
 				m_ss.write(m_buf, len);
+//            if (len < 0)
+//            {
+//                close(m_pipe_from_cgi[0]);
+//                throw IntServerErr;
+//            }
 			if (len == 0)
 			{
 				close(m_pipe_from_cgi[0]);

@@ -2,6 +2,7 @@
 #include <arpa/inet.h>
 #include <bitset>
 #include <fcntl.h>
+#include <dirent.h>
 #include "../utils/utils.hpp"//
 
 #define CHUNKED_HEADER "HTTP/1.1 200 OK\r\n"\
@@ -20,7 +21,8 @@ namespace ft
 SocketHolder::SocketHolder(int desc, const std::vector<CfgCtx>& ctxs) :
                                         m_file_descriptor(desc),
                                         m_configs(ctxs),
-                                        m_hostSockAddrLen(0)
+                                        m_hostSockAddrLen(0),
+                                        m_error_resp(false)
 {
     m_procStatus = ReadRequest;
     memset(&m_hostSockAdd, 0, sizeof(m_hostSockAdd));
@@ -66,7 +68,8 @@ void SocketHolder::setNonBlocking()
 
 SocketHolder::SocketHolder(int domain, int type, int protocol, const std::vector<CfgCtx>& ctxs) :
                                                                         m_procStatus(ReadRequest),
-                                                                        m_configs(ctxs)
+                                                                        m_configs(ctxs),
+                                                                        m_error_resp(false)
 {
     m_sh_type = "Listen";
     m_file_descriptor = ::socket(domain, type,  protocol);
@@ -194,15 +197,19 @@ std::string SocketHolder::read()
 
 void SocketHolder::ProcessRead()
 {
-    if (!m_sh_type.empty())
-    {
-        std::cout << m_sh_type << std::endl;
-        m_sh_type.clear();
-    }
 	if (m_procStatus == ReadRequest)
 	{
 		std::cout << "  socket #" << m_file_descriptor << " AccumulateRequest" << std::endl;
-		AccumulateRequest();
+		Errors res;
+        res = AccumulateRequest();
+        if (res != NoError && res != SocketError)
+        {
+            m_err = res;
+            m_error_resp = true;
+            m_procStatus = WriteRequest;
+        }
+        else if (res == SocketError)
+            return;
 	}
 	else if (m_procStatus == ReadBody)
 	{
@@ -222,16 +229,61 @@ void SocketHolder::ProcessRead()
 
 void SocketHolder::InitWriteHandler()
 {
-	if (m_reqHeader->get_req_headers().is_cgi)
-	{
-		m_writeHandler = Shared_ptr<IOutputHandler>(new OutputRawHandler(m_file_descriptor,
-																		 m_cgi_raw_out));
-	}
-    else if (m_writeHandler.get() == NULL)
+    if (m_writeHandler.get() == NULL)
     {
-        m_writeHandler = Shared_ptr<IOutputHandler>(new OutputChunkedHandler(m_file_descriptor,
-                                                    m_file,
-                                                    CHUNKED_HEADER));
+        if (m_error_resp)
+        {
+            if (m_vServer.error_pages.empty())
+                SetVServer();
+            m_writeHandler = Shared_ptr<IOutputHandler>
+                    (new OutputChunkedHandler(m_file_descriptor,
+                                              m_vServer.error_pages.find(m_err)->second,
+                                              MakeErrorHeader(m_err)));
+        }
+        else if (m_vServer.locations.find(m_location)->second.is_redirect)
+        {
+            std::ostringstream ss;
+            ss << "HTTP/1.1 302 Redirect\r\n";
+            ss << "Location: ";
+            ss << m_vServer.locations.find(m_location)->second.redirect_uri;
+            ss << "\r\n\r\n";
+            m_writeHandler = Shared_ptr<IOutputHandler>(new OutputRawHandler(m_file_descriptor,
+                                                                             ss.str()));
+        }
+        else if (m_reqHeader->get_req_headers().is_cgi)
+        {
+            m_writeHandler = Shared_ptr<IOutputHandler>(new OutputRawHandler(m_file_descriptor,
+                                                                             m_cgi_raw_out));
+        }
+        else if (m_reqHeader->get_req_headers().is_req_folder
+                    && m_vServer.locations.find(m_location)->second.autoindex)
+        {
+            std::ostringstream ss;
+            ss << "HTTP/1.1 200 OK\r\nContent-length: ";
+            ss << m_file.size();
+            ss << "\r\nContent-type: text/html";
+            ss << "\r\n\r\n";
+            ss << m_file;
+            m_writeHandler = Shared_ptr<IOutputHandler>(new OutputRawHandler(m_file_descriptor,
+                                                                             ss.str()));
+        }
+        else
+        {
+            try
+            {
+                m_writeHandler = Shared_ptr<IOutputHandler>
+                    (new OutputChunkedHandler(m_file_descriptor,
+                                              m_file,
+                                              CHUNKED_HEADER));
+            }
+            catch (Errors err)
+            {
+                m_writeHandler = Shared_ptr<IOutputHandler>
+                        (new OutputChunkedHandler(m_file_descriptor,
+                                                  m_vServer.error_pages.find(err)->second,
+                                                  MakeErrorHeader(err)));
+            }
+        }
     }
 }
 
@@ -242,7 +294,15 @@ void SocketHolder::ProcessWrite()
     if (m_procStatus == WriteRequest)
     {
         InitWriteHandler();
-        m_writeHandler->ProcessOutput();
+        try
+        {
+            m_writeHandler->ProcessOutput();
+        }
+        catch (const std::exception &ex)
+        {
+            std::cerr << ex.what() << std::endl;
+            m_procStatus = Done;
+        }
         if (m_writeHandler->IsDone())
         {
             std::cout << "  socket #" << m_file_descriptor << "ProcessWrite" << "status = Done" << std::endl;
@@ -328,7 +388,8 @@ Shared_ptr<SocketHolder> SocketHolder::accept()
                 break;
         }
     // std::cout << reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)-> << std::endl;
-        throw std::runtime_error("Error accepting socket");
+    //    throw std::runtime_error("Error accepting socket");
+        sock->m_procStatus = Done;
     }
 
     return sock;
@@ -338,9 +399,6 @@ SocketHolder::~SocketHolder()
 {
 
     std::cout << std::endl << "<<<<<<<socket destroyed " << m_file_descriptor << std::endl;
-    std::cout << "          m_req_string:" <<  m_req_string << std::endl;
-    std::cout << "          m_remainAfterRequest:" << m_remainAfterRequest << std::endl << std::endl;
-
     // std::cout << "free " << m_file_descriptor << " objc " << *m_obj_counter <<  std::endl;
     if (m_file_descriptor != -1)
     {
@@ -349,58 +407,109 @@ SocketHolder::~SocketHolder()
     }
 }
 
-void SocketHolder::AccumulateRequest()
+Errors SocketHolder::AccumulateRequest()
 {
     char buffer[BUFF_SIZE];
    
-    int res = recv(m_file_descriptor, buffer, BUFFER_SIZE, 0);
+    ssize_t res = recv(m_file_descriptor, buffer, BUFFER_SIZE, 0);
 
-    if (res < 0)
+    if (res <= 0)
     {
         // std::cout << m_file_descriptor << std::endl;
         perror("FAILED");
-        throw std::runtime_error("AccumulateRequest FAILED");
+        m_procStatus = Done;
+        return SocketError;
+        //throw std::runtime_error("AccumulateRequest FAILED");
     }
 
 	m_req_string.append(buffer, res);
 
     std::string::size_type found = m_req_string.find("\r\n\r\n");
 
+//    if (m_req_string.find("\r\n") != std::string::npos)
+//        if (m_req_string.find("HTTP/1.1") == std::string::npos)
+//            throw BadRequest;
+
     /* if req header done reading */
     if (found != std::string::npos)
     {
 		m_remainAfterRequest = m_req_string.substr(found + 4, m_req_string.size() - (found + 4));
 
-//        std::cout << "remain string:" << m_remainAfterRequest.size() <<std::endl;
-
 		m_req_string = m_req_string.substr(0, found);
         /*todo testing only. should be READ BODY*/
         m_reqHeader = Shared_ptr<HttpReqHeader>(new HttpReqHeader(m_req_string));
-//        m_procStatus = WriteBody;
 
-		if (m_reqHeader->get_req_headers().method == "POST")
+        request_headers hdrs = m_reqHeader->get_req_headers();
+
+        SetVServer();
+
+        if (hdrs.method != "GET" && hdrs.method != "POST" && hdrs.method != "DELETE")
+            return NotImplemented;
+        if (!hdrs.scheme.empty() && hdrs.scheme != "http")
+            return BadRequest;
+//        if (hdrs.version != "HTTP/1.1")
+//            throw HttpVersionNS;
+        if (hdrs.uri.size() > 2000)
+            return ReqUriTooLong;
+
+        SetLocation();
+        if (m_location.empty())
+            return NotFound;
+
+        if (m_vServer.locations.find(m_location)->second.is_redirect)
         {
-			m_procStatus = ReadBody;
-            InitBodyHandler();
-            if (m_bodyHandler->IsDone())
+            m_procStatus = WriteRequest;
+            return NoError;
+        }
+
+		if (hdrs.method == "POST")
+        {
+            if (m_vServer.locations.find(m_location)->second.allow_post)
             {
-                if (m_reqHeader->get_req_headers().is_cgi)
+                size_t max_body_size = m_vServer.locations.find(m_location)->second.client_max_body_size;
+                if (max_body_size)
+                {
+                    if (hdrs.is_chunked)
+                        return LengthReq;
+                    else if (hdrs.cont_length > max_body_size)
+                        return ReqEntTooLarge;
+                }
+
+                m_procStatus = ReadBody;
+                InitBodyHandler();
+                if (m_bodyHandler->IsDone())
+                {
+                    m_body = dynamic_cast<InputLengthHandler *>(m_bodyHandler.get())->GetRes();
+                    if (hdrs.is_cgi)
+                        m_procStatus = PrepareCgi;
+                    else
+                        m_procStatus = WriteRequest;
+                }
+            }
+            else
+                return MethodNA;
+        }
+		else if (hdrs.method == "GET")
+        {
+            if (m_vServer.locations.find(m_location)->second.allow_get)
+            {
+                if (hdrs.is_cgi)
                     m_procStatus = PrepareCgi;
                 else
                     m_procStatus = WriteRequest;
             }
+            else
+                return MethodNA;
         }
-		else if (m_reqHeader->get_req_headers().method == "GET")
-        {
-			if (m_reqHeader->get_req_headers().is_cgi)
-				m_procStatus = PrepareCgi;
-			else
-				m_procStatus = WriteRequest;
-        }
+        else if (hdrs.method == "DELETE")
+            if (m_vServer.locations.find(m_location)->second.allow_del)
+            {
 
-		SetVServer();
-		SetLocation();
+            }
+            else
+                return MethodNA;
     }
+    return NoError;
 }
 
  void SocketHolder::InitBodyHandler()
@@ -420,13 +529,14 @@ void SocketHolder::AccumulateRequest()
             {
                 std::cout << "  socket #" << m_file_descriptor << "<<<<<<<<INIT BODYHANDLER InputChunkedHandler" << std::endl;
                 m_bodyHandler = Shared_ptr<IInputHandler>(new InputChunkedHandler
-			        (m_file_descriptor, 1000000));
+			        (m_file_descriptor));
             }
             else
             {
+                m_procStatus = Done;
                 // std::cout << "<<<<<<SET STATUS DONE" << std::endl;
-                m_bodyHandler = Shared_ptr<IInputHandler>(new InputLengthHandler
-                        (m_file_descriptor, m_reqHeader->get_req_headers().cont_length, m_remainAfterRequest));
+                //m_bodyHandler = Shared_ptr<IInputHandler>(new InputLengthHandler
+                        //(m_file_descriptor, 0, m_remainAfterRequest));
             }
         }
      }
@@ -437,7 +547,15 @@ void SocketHolder::AccumulateRequest()
      InitBodyHandler();
 
      std::cout << "HANDLE BODY" << std::endl;
-     m_bodyHandler->ProcessInput();
+     try
+     {
+        m_bodyHandler->ProcessInput();
+     }
+     catch (const std::exception &ex)
+     {
+         std::cerr << ex.what() << std::endl;
+         m_procStatus = Done;
+     }
      if (m_bodyHandler->IsDone())
      {
 		 m_body = dynamic_cast<InputLengthHandler *>(m_bodyHandler.get())->GetRes();
@@ -466,7 +584,7 @@ void SocketHolder::AccumulateRequest()
 		 if (m_reqHeader->get_req_headers().is_cgi)
 			 m_procStatus = PrepareCgi;
 		 else
-			 m_procStatus = WriteRequest;//
+			 m_procStatus = WriteRequest;
      }
  }
 
@@ -475,7 +593,10 @@ void SocketHolder::SetVServer()
 	std::vector<CfgCtx>::const_iterator cit;
 	std::vector<CfgCtx>::iterator it;
 	std::vector<CfgCtx> match;
-	std::string		host = m_reqHeader->get_req_headers().host;
+	std::string		host;
+
+    if (m_reqHeader.get() != NULL)
+        host = m_reqHeader->get_req_headers().host;
 
 	std::string	server_ip_port;
 	std::string m_ip_port = m_serverIp + ":" + m_serverPort;
@@ -520,19 +641,22 @@ void SocketHolder::SetLocation()
 	}
 
 	if (m_location.empty())
-		std::cout << "Error to find location" << std::endl;
-	else
-		std::cout << "Found location: [" << m_location << "]" << std::endl;
+        return;
 
 	if (isdir)
 	{
-		m_file = m_vServer.locations.find(m_location)->second.root
-			+ "/" + m_vServer.locations.find(m_location)->second.index;
+        if (m_vServer.locations.find(m_location)->second.autoindex)
+        {
+            m_file = MakeAutoindex();
+        }
+        else
+        {
+		    m_file = m_vServer.locations.find(m_location)->second.root
+			    + "/" + m_vServer.locations.find(m_location)->second.index;
+        }
 	}
 	else
-		m_file = m_vServer.locations.find(m_location)->second.root + m_file;//.substr(1);
-
-	std::cout << "[[" << m_file << "]]";
+		m_file = m_vServer.locations.find(m_location)->second.root + m_file;
 }
 
 void SocketHolder::SetMServerIp(const std::string &m_server_ip)
@@ -580,23 +704,58 @@ void SocketHolder::SetCgi()
 	m_argv[0] = strdup((m_vServer.locations.find(m_location)->second.root + hdrs.path).c_str());
 	m_argv[1] = NULL;
 
+    m_procStatus = ProcessCgi;
+
 	if (hdrs.method == "POST")
-		m_cgiHandler = Shared_ptr<IInputHandler>(new InputCgiPostHandler(m_envp, m_argv,
-																		 m_body, m_file_descriptor));
+    {
+		m_cgiHandler = Shared_ptr<IInputHandler>(new InputCgiPostHandler);
+        try
+        {
+            dynamic_cast<InputCgiPostHandler *>
+            (m_cgiHandler.get())->Init(m_envp, m_argv, m_body, m_file_descriptor);
+        }
+        catch (Errors err)
+        {
+            m_err = err;
+            m_error_resp = true;
+            m_procStatus = WriteRequest;
+        }
+    }
 	else if (hdrs.method == "GET")
-		m_cgiHandler = Shared_ptr<IInputHandler>(new InputCgiGetHandler(m_envp, m_argv, m_file_descriptor));
-	m_procStatus = ProcessCgi;
+    {
+        m_cgiHandler = Shared_ptr<IInputHandler>(new InputCgiGetHandler);
+        try
+        {
+            dynamic_cast<InputCgiGetHandler *>
+            (m_cgiHandler.get())->Init(m_envp, m_argv, m_file_descriptor);
+        }
+        catch (Errors err)
+        {
+            m_err = err;
+            m_error_resp = true;
+            m_procStatus = WriteRequest;
+        }
+    }
+    for (size_t i = 0; m_envp[i] != NULL; ++i)
+    {
+        delete (m_envp[i]);
+    }
+    delete m_argv[0];
 }
 void SocketHolder::HandleCgi()
 {
-	m_cgiHandler->ProcessInput();
+    try
+    {
+        m_cgiHandler->ProcessInput();
+    }
+    catch (Errors err)
+    {
+        m_err = err;
+        m_error_resp = true;
+        m_procStatus = WriteRequest;
+    }
 	if (m_cgiHandler->IsDone())
 	{
-		for (size_t i = 0; m_envp[i] != NULL; ++i)
-		{
-			delete (m_envp[i]);
-		}
-		delete m_argv[0];
 		if (m_reqHeader->get_req_headers().method == "GET")
 //            m_cgi_raw_out = "HTTP/1.1 200 OK\r\nContent-Length: 6\r\n\r\nHello\n";
 			m_cgi_raw_out = dynamic_cast<InputCgiGetHandler *>(m_cgiHandler.get())->GetRes();
@@ -613,5 +772,114 @@ void SocketHolder::HandleCgi()
 		m_procStatus = WriteRequest;
 	}
 }
+
+    std::string SocketHolder::MakeAutoindex()
+    {
+        std::string autoIndex;
+        char    buf[BUFFER];
+        
+        autoIndex += "<!DOCTYPE html>\n";
+        autoIndex += "<html>\n";
+        autoIndex += "<head>\n";
+        autoIndex += "<meta http-equiv=\"Content\" content=\"text/html; charset=UTF-8\">\n";
+        autoIndex += "</head>\n";
+        autoIndex += "<body>\n";
+        autoIndex += "<table>\n";
+        autoIndex += "<tbody id=\"tbody\">\n";
+
+        DIR *dir;
+        std::string slash;
+        struct dirent *ent;
+        bzero(buf, BUFFER);
+        std::string dirbuf(getcwd(buf, BUFFER));
+        dirbuf.append("/");
+        dirbuf.append(m_vServer.locations.find(m_location)->second.root + m_file);
+        if (IsDir(dirbuf.c_str())) {
+            if ((dir = opendir(dirbuf.c_str())) != 0) {
+
+                while((ent = readdir(dir)) != 0) {
+                    slash = "";
+                    std::string tmp (ent->d_name);
+                    if (IsDir((dirbuf + tmp).c_str()))
+                        slash = "/";
+                    if (tmp != ".")
+                        autoIndex += "<tr><td><form method=\"GET\" action=\"\"> <a href=\"" + tmp + slash + "\">" + tmp + "</a></form></td>\n";
+                }
+            }
+            else
+            {
+                //404;
+            }
+            closedir(dir);
+        }
+        else {
+            autoIndex.clear();
+            return autoIndex;
+        }
+        autoIndex += "</tbody>\n";
+        autoIndex += "</table>\n";
+        autoIndex += "</body>\n";
+        autoIndex += "</html>";
+        return autoIndex;
+    }
+
+    bool SocketHolder::IsDir(const char *path) {
+        struct stat s = {};
+        if (lstat(path, &s) == -1) {
+            return false;
+        }
+        return S_ISDIR(s.st_mode);
+    }
+
+    std::string SocketHolder::MakeErrorHeader(u_short code)
+    {
+        std::string error("HTTP/1.1 ");
+        switch (code)
+        {
+            case 400:
+                error.append("400 Bad Request\r\n");
+                break;
+            case 403:
+                error.append("403 Forbidden\r\n");
+                break;
+            case 404:
+                error.append("404 Not Found\r\n");
+                break;
+            case 405:
+                error.append("405 Method Not Allowed\r\n");
+                break;
+            case 411:
+                error.append("411 Length Required\r\n");
+                break;
+            case 413:
+                error.append("413 Request Entity Too Large\r\n");
+                break;
+            case 414:
+                error.append("414 Request-URI Too Long\r\n");
+                break;
+            case 500:
+                error.append("500 Internal Server Error\r\n");
+                break;
+            case 501:
+                error.append("501 Not Implemented\r\n");
+                break;
+            case 502:
+                error.append("502 Bad Gateway\r\n");
+                break;
+            case 504:
+                error.append("504 Gateway Timeout\r\n");
+                break;
+            case 505:
+                error.append("505 HTTP Version Not Supported\r\n");
+                break;
+            default:
+                break;
+        }
+
+        error.append("Content-type: text/html\r\n"\
+                        "Transfer-Encoding: chunked\r\n"\
+                        "Connection: close\r\n\r\n");
+        return error;
+    }
 
 } //namespace ft

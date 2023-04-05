@@ -57,13 +57,18 @@ namespace ft
         std::string port;
         std::string path;
 		std::string path_info;
-        std::string query;//std::map<std::string, std::string>    query;
+        std::string query;
         std::string fragment;
     };
 
     struct request_headers
     {
         std::string method;
+
+        std::string scheme;
+        std::string version;
+        std::string uri;
+
         std::string host;
         size_t      port;
 		std::string port_str;
@@ -80,7 +85,6 @@ namespace ft
         bool    keep_alive;
         bool    is_chunked;
         bool    is_req_folder;
-        bool    rel_path;
 		bool	is_cgi;
     }; 
 

@@ -36,7 +36,7 @@ namespace ft
         m_content_length(""),
         m_content_type(""),
         m_keep_alive(true),
-        m_chunked(false),
+        m_chunked(true),
         m_req_folder(false),
         m_rel_path(false),
 		m_cgi(false)
@@ -89,6 +89,7 @@ namespace ft
             {
                 std::getline(ihead, m_content_length, ':');
                 m_content_length = trim_spaces(m_content_length);
+                m_chunked = false;
                 // std::cout << "content-length: [" << m_content_length << "]" << std::endl; //debug
             }
             else if (line == "content-type")
@@ -245,7 +246,9 @@ namespace ft
         res.is_chunked = m_chunked;
         res.content_type = m_content_type;
         res.is_req_folder = m_req_folder;
-        res.rel_path = m_rel_path;
+        res.scheme = m_st_uri.scheme;
+        res.version = m_version;
+        res.uri = m_uri;
 		res.is_cgi = m_cgi;
 
 		res.boundary = m_boundary;

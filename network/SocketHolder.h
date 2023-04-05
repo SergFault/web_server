@@ -9,9 +9,9 @@
 #include "../parsing/CfgCtx.hpp"
 
 #include <netinet/in.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <sys/socket.h>
 #include <iostream>
 #include <unistd.h>
@@ -19,9 +19,13 @@
 #include <sstream>
 #include <vector>
 #include <unistd.h>
+#include <sys/stat.h>
+
+#include "../utils/utils.hpp"
 
 #define PORT 8080
 #define BACKLOG 30
+#define BUFFER 2048
 
 
 namespace ft{
@@ -59,10 +63,13 @@ public:
 private:
     SocketHolder();
     // void SetNextState();
-    void AccumulateRequest();
+    Errors AccumulateRequest();
     void HandleBody(void);
 	void SetCgi();
 	void HandleCgi();
+    std::string MakeAutoindex();
+    bool IsDir(const char* path);
+    std::string MakeErrorHeader(u_short code);
     // bool m_req_done = false;
 
     /* whole request as string */
@@ -111,9 +118,10 @@ private:
     std::string m_sh_type;
 
     int m_res;
+    Errors m_err;
+    bool   m_error_resp;
     /* configs */
     const std::vector<CfgCtx>& m_configs;
 };
-
 
 } // namespace ft

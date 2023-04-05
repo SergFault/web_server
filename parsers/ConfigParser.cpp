@@ -108,6 +108,20 @@ namespace ft
             v_server.ip = "0.0.0.0";
             v_server.port = "8080";
 
+            std::string err_path("../err_pages/");//debug
+            v_server.error_pages.insert(std::make_pair(400, err_path + "400.html"));
+            v_server.error_pages.insert(std::make_pair(403, err_path + "403.html"));
+            v_server.error_pages.insert(std::make_pair(404, err_path + "404.html"));
+            v_server.error_pages.insert(std::make_pair(405, err_path + "405.html"));
+            v_server.error_pages.insert(std::make_pair(411, err_path + "411.html"));
+            v_server.error_pages.insert(std::make_pair(413, err_path + "413.html"));
+            v_server.error_pages.insert(std::make_pair(414, err_path + "414.html"));
+            v_server.error_pages.insert(std::make_pair(500, err_path + "500.html"));
+            v_server.error_pages.insert(std::make_pair(501, err_path + "501.html"));
+            v_server.error_pages.insert(std::make_pair(502, err_path + "502.html"));
+            v_server.error_pages.insert(std::make_pair(504, err_path + "504.html"));
+            v_server.error_pages.insert(std::make_pair(505, err_path + "505.html"));
+
             std::string location;
             while (!(location = get_location_block(server)).empty())
             {
@@ -229,7 +243,7 @@ namespace ft
                     u_short err_code;
                     std::string err_page;
                     iss_key_values >> err_code >> err_page;
-                    v_server.error_pages.insert(std::make_pair(err_code, err_page));
+                    v_server.error_pages.find(err_code)->second = err_page;
                 }
                 else if (key == "root")
                 {

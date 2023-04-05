@@ -44,6 +44,22 @@ include the on parameter to the autoindex directive:
 */
 namespace ft
 {
+    enum  Errors
+    {
+        BadRequest = 400,
+        Forbidden = 403,
+        NotFound = 404,
+        MethodNA = 405,
+        LengthReq = 411,
+        ReqEntTooLarge = 413,
+        ReqUriTooLong = 414,
+        IntServerErr = 500,
+        NotImplemented = 501,
+        BadGateway = 502,
+        GatewayTimeout = 504,
+        HttpVersionNS = 505
+    };
+
     class ConfigParser
     {
     private:
