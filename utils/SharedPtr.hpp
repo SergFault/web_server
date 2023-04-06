@@ -40,8 +40,11 @@ public:
 
         if (this == &other)
             return *this;
-        delete m_counter;
-        delete m_ptr;
+	if (release())
+	{
+	  delete m_counter;
+	  delete m_ptr;
+	}
 
         m_ptr = other.m_ptr;
         m_counter = other.m_counter;
