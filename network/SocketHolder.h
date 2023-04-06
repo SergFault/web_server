@@ -43,13 +43,16 @@ enum ProcessStatus
 class SocketHolder
 {
 public:
-    SocketHolder(int domain, int type, int protocol, const std::vector<CfgCtx>& ctxs);
-    SocketHolder(int desc, const std::vector<CfgCtx>& ctxs);
+    SocketHolder(int domain, int type, int protocol, std::vector<CfgCtx>* ctxs);
+    SocketHolder(int desc, std::vector<CfgCtx>* ctxs);
 
     ~SocketHolder();
     void bind(struct sockaddr_in *addr);
     void listen();
     Shared_ptr<SocketHolder> accept();
+
+    int accept_int();
+
     void send(const std::string&);
     std::string read();
     ProcessStatus getStatus() const;
@@ -121,7 +124,7 @@ private:
     Errors m_err;
     bool   m_error_resp;
     /* configs */
-    const std::vector<CfgCtx>& m_configs;
+    std::vector<CfgCtx>* m_configs;
 };
 
 } // namespace ft

@@ -21,6 +21,7 @@ private:
     std::string m_configsPath;
     std::vector< Shared_ptr<SocketHolder> > m_listenSockets;
     std::vector< Shared_ptr<SocketHolder> > m_rwSockets;
+    std::vector<SocketHolder> m_rwESockets;
 
     // std::vector<VirtualServer> m_vServers;
 

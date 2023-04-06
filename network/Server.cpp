@@ -7,6 +7,7 @@
 #include <string>
 #include <unistd.h>
 #include <sys/select.h>
+#include <algorithm>
 #include "../parsers/ConfigParser.h"
 
 namespace ft{
@@ -45,7 +46,7 @@ void Server::initialize(){
         try
         {
             // Shared_ptr<SocketHolder> sh_p(new SocketHolder(AF_INET, SOCK_STREAM, 0));
-            socket_ptr = Shared_ptr<SocketHolder>(new SocketHolder(AF_INET, SOCK_STREAM, 0, m_configs));
+            socket_ptr = Shared_ptr<SocketHolder>(new SocketHolder(AF_INET, SOCK_STREAM, 0, &m_configs));
         }
         catch(const std::exception &ex)
         {
@@ -97,14 +98,14 @@ void Server::initReadWriteSets(fd_set &read, fd_set &write)
 
     for (std::vector< Shared_ptr<SocketHolder> >::iterator it = m_rwSockets.begin(); it != m_rwSockets.end(); it++)
     {
-        if ((*it)->getFd() > 0)
+        if ((*it)->getFd() > 0 && (*it)->getStatus() != Done)
         {
             FD_SET((*it)->getFd(), &write);
             FD_SET((*it)->getFd(), &read);
-        }
-        if (m_maxSelectFd <= (*it)->getFd())
-        {
-            m_maxSelectFd = (*it)->getFd() + 1;
+            if (m_maxSelectFd <= (*it)->getFd())
+            {
+                m_maxSelectFd = (*it)->getFd() + 1;
+            }
         }
     }
 }
@@ -112,6 +113,11 @@ void Server::initReadWriteSets(fd_set &read, fd_set &write)
 Server::Server(const std::string& confPath): m_configsPath(confPath), m_maxSelectFd(0)
 {
 
+}
+
+bool done(Shared_ptr<SocketHolder> sh)
+{
+    return (sh->getStatus() == Done);
 }
 
 void Server::Run()
@@ -135,10 +141,12 @@ void Server::Run()
         {
             if ( FD_ISSET( (*it)->getFd(), &readFd) )
             {
+                int fd = (*it)->accept_int();
                 std::cout << "  socket #" << (*it)->getFd() << "accepting" << std::endl;
-                Shared_ptr<SocketHolder> sh_h = (*it)->accept();
-                if (sh_h->getFd() != -1)
+//                Shared_ptr<SocketHolder> sh_h = (*it)->accept();
+                if (fd != -1)
                 {
+                    Shared_ptr<SocketHolder> sh_h(new SocketHolder(fd, &m_configs));
                     // std::cout << "Accepted " << sh_h->getFd() << "Status" << sh_h->getStatus() << std::endl;
                     sh_h->setNonBlocking();
 					sh_h->SetMServerIp((*it)->getServerIp());
@@ -187,6 +195,8 @@ void Server::Run()
 //        }
 
         /* REMOVE DONE FD */
+
+//        std::remove_if(m_rwSockets.begin(), m_rwSockets.end(), &done);
         for (std::vector< Shared_ptr<SocketHolder> >::iterator it = m_rwSockets.begin();
                     it != m_rwSockets.end();)
         {

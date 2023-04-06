@@ -18,12 +18,13 @@
 namespace ft
 {
 
-SocketHolder::SocketHolder(int desc, const std::vector<CfgCtx>& ctxs) :
+SocketHolder::SocketHolder(int desc, std::vector<CfgCtx>* ctxs) :
                                         m_file_descriptor(desc),
-                                        m_configs(ctxs),
+                                        m_configs(NULL),
                                         m_hostSockAddrLen(0),
                                         m_error_resp(false)
 {
+    m_configs = ctxs;
     m_procStatus = ReadRequest;
     memset(&m_hostSockAdd, 0, sizeof(m_hostSockAdd));
     m_sh_type = "RW";
@@ -66,7 +67,7 @@ void SocketHolder::setNonBlocking()
     }
 }
 
-SocketHolder::SocketHolder(int domain, int type, int protocol, const std::vector<CfgCtx>& ctxs) :
+SocketHolder::SocketHolder(int domain, int type, int protocol, std::vector<CfgCtx>* ctxs) :
                                                                         m_procStatus(ReadRequest),
                                                                         m_configs(ctxs),
                                                                         m_error_resp(false)
@@ -303,6 +304,10 @@ void SocketHolder::ProcessWrite()
             std::cerr << ex.what() << std::endl;
             m_procStatus = Done;
         }
+        catch (...)
+        {
+            std::cerr << "exception\n";
+        }
         if (m_writeHandler->IsDone())
         {
             std::cout << "  socket #" << m_file_descriptor << "ProcessWrite" << "status = Done" << std::endl;
@@ -317,6 +322,11 @@ void SocketHolder::ProcessWrite()
 	{
 		HandleCgi();
 	}
+}
+
+int SocketHolder::accept_int()
+{
+    return ::accept(m_file_descriptor, &m_hostSockAdd, &m_hostSockAddrLen);
 }
 
 Shared_ptr<SocketHolder> SocketHolder::accept()
@@ -405,6 +415,8 @@ SocketHolder::~SocketHolder()
         ::shutdown(m_file_descriptor, SHUT_RDWR);
         ::close(m_file_descriptor);
     }
+    else
+        std::cout << "-1";
 }
 
 Errors SocketHolder::AccumulateRequest()
@@ -601,7 +613,7 @@ void SocketHolder::SetVServer()
 	std::string	server_ip_port;
 	std::string m_ip_port = m_serverIp + ":" + m_serverPort;
 
-	for (cit = m_configs.begin(); cit != m_configs.end(); ++cit)
+	for (cit = m_configs->begin(); cit != m_configs->end(); ++cit)
 	{
 		server_ip_port = cit->ip + ":" + cit->port;
 

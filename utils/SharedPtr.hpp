@@ -38,6 +38,8 @@ public:
 
     Shared_ptr<T>& operator=(const Shared_ptr<T> &other) {
 
+        if (this == &other)
+            return *this;
         delete m_counter;
         delete m_ptr;
 
