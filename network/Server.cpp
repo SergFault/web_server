@@ -157,14 +157,8 @@ void Server::Run()
             
                 (*it)->ProcessRead();
             }
-            // std::cout << "RW SOCKET mark NO-READ " << (*it)->getFd() << std::endl;
-        }
 
-        /* WRITE RESP */
-        for (std::vector< Shared_ptr<SocketHolder> >::iterator it = m_rwSockets.begin(); it != m_rwSockets.end(); it++)
-        {
-            if (( FD_ISSET( (*it)->getFd(), &writeFd) ) &&  ((*it)->getStatus() != ReadRequest)
-					&& ((*it)->getStatus() != ReadBody))
+	    if (( FD_ISSET( (*it)->getFd(), &writeFd) ) &&  (*it)->getStatus() == WriteRequest)
             {
                 std::cout << "socket #" << (*it)->getFd() << " SELECT WRITE" << std::endl;
                 // std::cout << "RW SOCKET mark: YES-WRITE " << (*it)->getFd() << std::endl;
@@ -176,6 +170,29 @@ void Server::Run()
                 // std::cout << "REQ:" << std::endl << request_str << std::endl;
             
             }
+
+	    if ((*it)->getStatus() == ProcessCgi || (*it)->getStatus() == PrepareCgi)
+	      (*it)->ProcessWrite();
+            // std::cout << "RW SOCKET mark NO-READ " << (*it)->getFd() << std::endl;
+        }
+
+        /* WRITE RESP */
+        /*for (std::vector< Shared_ptr<SocketHolder> >::iterator it = m_rwSockets.begin(); it != m_rwSockets.end(); it++)
+        {
+	  
+	  if (( FD_ISSET( (*it)->getFd(), &writeFd) ) &&  (*it)->getStatus() == WriteRequest)
+            {
+                std::cout << "socket #" << (*it)->getFd() << " SELECT WRITE" << std::endl;
+                // std::cout << "RW SOCKET mark: YES-WRITE " << (*it)->getFd() << std::endl;
+                
+                (*it)->ProcessWrite();
+
+                // it = m_rwSockets.erase(it);
+                //todo send
+                // std::cout << "REQ:" << std::endl << request_str << std::endl;
+            
+            }
+	  
             // it->sendFromRespHandler();
             // std::cout << "RW SOCKET mark: NO-WRITE" << (*it)->getFd() << std::endl;
         }

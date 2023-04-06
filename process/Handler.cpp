@@ -404,11 +404,13 @@ namespace ft
 				}
 			}
 
-			ssize_t len = read(m_pipe_from_cgi[0], m_buf, BUFF_SIZE);
+			ssize_t len = read(m_pipe_from_cgi[0], m_buf, BUFF_SIZE); 
+			std::cout << len << " read from pipe" << std::endl;
 			if (len > 0)
 				m_ss.write(m_buf, len);
 			if (len == 0)
 			{
+			  std::cout << "close pipe" << std::endl;
 				close(m_pipe_from_cgi[0]);
 				m_isDone = true;
 			}
