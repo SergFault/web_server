@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdio.h>
+#include <cstdio>
 
 namespace ft {
 
@@ -40,11 +40,11 @@ public:
 
         if (this == &other)
             return *this;
-	if (release())
-	{
-	  delete m_counter;
-	  delete m_ptr;
-	}
+		if (release())
+		{
+		  delete m_counter;
+		  delete m_ptr;
+		}
 
         m_ptr = other.m_ptr;
         m_counter = other.m_counter;

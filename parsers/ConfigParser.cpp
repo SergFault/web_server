@@ -171,10 +171,12 @@ namespace ft
                         if (allow == "on")
                             new_location.autoindex = true;
                     }
-                    else if (l_arg == "upload_path")
+                    else if (l_arg == "file_transfer")
                     {
-                        new_location.uploading = true;
-                        iss_loc_values >> new_location.upload_path;
+						std::string allow;
+						iss_loc_values >> allow;
+						if (allow == "on")
+                        	new_location.file_transfer = true;
                     }
                     else if (l_arg == "cgi")
                     {

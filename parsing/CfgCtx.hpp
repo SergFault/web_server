@@ -20,8 +20,17 @@ namespace ft
         bool    autoindex;
         bool    is_redirect;
         std::string index;
-        bool    uploading;
+        bool    file_transfer;
         std::string upload_path;
+
+		Location() : client_max_body_size(0),
+					 allow_get(true),
+					 allow_post(false),
+					 allow_del(false),
+					 allow_cgi(false),
+					 autoindex(false),
+					 is_redirect(false),
+					 file_transfer(false) {}
     };
 
     // struct VirtualServer

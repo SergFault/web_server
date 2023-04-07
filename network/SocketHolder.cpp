@@ -7,13 +7,13 @@
 
 #define CHUNKED_HEADER "HTTP/1.1 200 OK\r\n"\
 "Transfer-Encoding: chunked\r\n"\
-"Connection: keep-alive\r\n"\
-"\r\n"                                      \
-
-#define ERROR_404_HEADER "HTTP/1.1 404 Not found\r\n"\
-"Transfer-Encoding: chunked\r\n"\
-"Connection: close\r\n"\
+"Connection: keep-alive\r\n"                \
 "\r\n"
+
+#define DOWNLOAD_HEADER "HTTP/1.1 200 OK\r\n"\
+"Transfer-Encoding: chunked\r\nContent-Disposition: attachment; filename="
+
+#define UPLOAD_HEADER "HTTP/1.1 201 Created\r\nContent-Length: 4\r\n\r\nDone"
 
 namespace ft
 {
@@ -22,7 +22,9 @@ SocketHolder::SocketHolder(int desc, std::vector<CfgCtx>* ctxs) :
                                         m_file_descriptor(desc),
                                         m_configs(NULL),
                                         m_hostSockAddrLen(0),
-                                        m_error_resp(false)
+                                        m_error_resp(false),
+										m_is_autoindex(false),
+										m_is_file_transfer(false)
 {
     m_configs = ctxs;
     m_procStatus = ReadRequest;
@@ -70,7 +72,9 @@ void SocketHolder::setNonBlocking()
 SocketHolder::SocketHolder(int domain, int type, int protocol, std::vector<CfgCtx>* ctxs) :
                                                                         m_procStatus(ReadRequest),
                                                                         m_configs(ctxs),
-                                                                        m_error_resp(false)
+                                                                        m_error_resp(false),
+																		m_is_autoindex(false),
+																		m_is_file_transfer(false)
 {
     m_sh_type = "Listen";
     m_file_descriptor = ::socket(domain, type,  protocol);
@@ -201,16 +205,31 @@ void SocketHolder::ProcessRead()
 	if (m_procStatus == ReadRequest)
 	{
 		std::cout << "  socket #" << m_file_descriptor << " AccumulateRequest" << std::endl;
-		Errors res;
-        res = AccumulateRequest();
-        if (res != NoError && res != SocketError)
-        {
-            m_err = res;
-            m_error_resp = true;
-            m_procStatus = WriteRequest;
-        }
-        else if (res == SocketError)
-            return;
+		try
+		{
+			AccumulateRequest();
+		}
+		catch (Errors err)
+		{
+			m_err = err;
+			m_error_resp = true;
+			m_procStatus = WriteRequest;
+		}
+		catch (const std::exception &ex)
+		{
+			std::cerr << ex.what() << std::endl;
+			m_procStatus = Done;
+		}
+//		Errors res;
+//        res = AccumulateRequest();
+//        if (res != NoError && res != SocketError)
+//        {
+//            m_err = res;
+//            m_error_resp = true;
+//            m_procStatus = WriteRequest;
+//        }
+//        else if (res == SocketError)
+//            return;
 	}
 	else if (m_procStatus == ReadBody)
 	{
@@ -256,8 +275,7 @@ void SocketHolder::InitWriteHandler()
             m_writeHandler = Shared_ptr<IOutputHandler>(new OutputRawHandler(m_file_descriptor,
                                                                              m_cgi_raw_out));
         }
-        else if (m_reqHeader->get_req_headers().is_req_folder
-                    && m_vServer.locations.find(m_location)->second.autoindex)
+        else if (m_is_autoindex)
         {
             std::ostringstream ss;
             ss << "HTTP/1.1 200 OK\r\nContent-length: ";
@@ -268,7 +286,43 @@ void SocketHolder::InitWriteHandler()
             m_writeHandler = Shared_ptr<IOutputHandler>(new OutputRawHandler(m_file_descriptor,
                                                                              ss.str()));
         }
-        else
+        else if (m_reqHeader->get_req_headers().method == "DELETE")
+		{
+			m_writeHandler = Shared_ptr<IOutputHandler>(new OutputRawHandler(m_file_descriptor,
+																			 m_delete_resp));
+		}
+		else if (m_is_file_transfer)
+		{
+			if (m_reqHeader->get_req_headers().method == "GET")
+			{
+				std::string dwnld_header = DOWNLOAD_HEADER;
+				std::string filename = m_file.substr(m_vServer.locations.find(m_location)->second.root.size());
+				if (filename[0] == '/')
+					filename.erase(0, 1);
+				dwnld_header += "\"" + filename + "\"";
+				dwnld_header.append("\r\n\r\n");
+				try
+				{
+					m_writeHandler = Shared_ptr<IOutputHandler>
+						(new OutputChunkedHandler(m_file_descriptor,
+												  m_file,
+												  dwnld_header));
+				}
+				catch (Errors err)
+				{
+					m_writeHandler = Shared_ptr<IOutputHandler>
+						(new OutputChunkedHandler(m_file_descriptor,
+												  m_vServer.error_pages.find(err)->second,
+												  MakeErrorHeader(err)));
+				}
+			}
+			else
+			{
+				m_writeHandler = Shared_ptr<IOutputHandler>(new OutputRawHandler(m_file_descriptor,
+																				 UPLOAD_HEADER));
+			}
+		}
+		else
         {
             try
             {
@@ -355,48 +409,6 @@ Shared_ptr<SocketHolder> SocketHolder::accept()
 	}
     else
     {
-        switch (errno)
-        {
-            case EAGAIN:
-                std::cout << "errno: EAGAIN\n";
-                break;
-            case EBADF:
-                std::cout << "errno: EBADF\n";
-                break;
-            case ECONNABORTED:
-                std::cout << "errno: ECONNABORTED\n";
-                break;
-            case EINTR:
-                std::cout << "errno: EINTR\n";
-                break;
-            case EINVAL:
-                std::cout << "errno: EINVAL\n";
-                break;
-            case EMFILE:
-                std::cout << "errno: EMFILE\n";
-                break;
-            case ENFILE:
-                std::cout << "errno: ENFILE\n";
-                break;
-            case ENOTSOCK:
-                std::cout << "errno: ENOTSOCK\n";
-                break;
-            case EOPNOTSUPP:
-                std::cout << "errno: EOPNOTSUPP\n";
-                break;
-            case ENOBUFS:
-                std::cout << "errno: ENOBUFS\n";
-                break;
-            case ENOMEM:
-                std::cout << "errno: ENOMEM\n";
-                break;
-            case EPROTO:
-                std::cout << "errno: EPROTO\n";
-                break;
-            default:
-                std::cout << "errno: default\n";
-                break;
-        }
     // std::cout << reinterpret_cast<sockaddr_in*>(&m_hostSockAdd)-> << std::endl;
     //    throw std::runtime_error("Error accepting socket");
         sock->m_procStatus = Done;
@@ -419,7 +431,7 @@ SocketHolder::~SocketHolder()
         std::cout << "-1";
 }
 
-Errors SocketHolder::AccumulateRequest()
+void SocketHolder::AccumulateRequest()
 {
     char buffer[BUFF_SIZE];
    
@@ -429,9 +441,7 @@ Errors SocketHolder::AccumulateRequest()
     {
         // std::cout << m_file_descriptor << std::endl;
         perror("FAILED");
-        m_procStatus = Done;
-        return SocketError;
-        //throw std::runtime_error("AccumulateRequest FAILED");
+        throw std::runtime_error("AccumulateRequest FAILED");
     }
 
 	m_req_string.append(buffer, res);
@@ -456,23 +466,28 @@ Errors SocketHolder::AccumulateRequest()
         SetVServer();
 
         if (hdrs.method != "GET" && hdrs.method != "POST" && hdrs.method != "DELETE")
-            return NotImplemented;
+            throw NotImplemented;
         if (!hdrs.scheme.empty() && hdrs.scheme != "http")
-            return BadRequest;
+            throw BadRequest;
 //        if (hdrs.version != "HTTP/1.1")
 //            throw HttpVersionNS;
         if (hdrs.uri.size() > 2000)
-            return ReqUriTooLong;
+            throw ReqUriTooLong;
 
         SetLocation();
         if (m_location.empty())
-            return NotFound;
+            throw NotFound;
 
         if (m_vServer.locations.find(m_location)->second.is_redirect)
         {
             m_procStatus = WriteRequest;
-            return NoError;
+            return;
         }
+
+		m_is_file_transfer = m_vServer.locations.find(m_location)->second.file_transfer;
+
+		if (!m_is_autoindex && access(m_file.c_str(), F_OK) != 0)
+			throw NotFound;
 
 		if (hdrs.method == "POST")
         {
@@ -482,9 +497,9 @@ Errors SocketHolder::AccumulateRequest()
                 if (max_body_size)
                 {
                     if (hdrs.is_chunked)
-                        return LengthReq;
+                        throw LengthReq;
                     else if (hdrs.cont_length > max_body_size)
-                        return ReqEntTooLarge;
+                        throw ReqEntTooLarge;
                 }
 
                 m_procStatus = ReadBody;
@@ -492,36 +507,77 @@ Errors SocketHolder::AccumulateRequest()
                 if (m_bodyHandler->IsDone())
                 {
                     m_body = dynamic_cast<InputLengthHandler *>(m_bodyHandler.get())->GetRes();
+					if (!m_reqHeader->get_req_headers().is_cgi && !m_reqHeader->get_req_headers().boundary.empty())
+					{
+						std::string filename;
+
+						size_t begin, end;
+						//std::string s = dynamic_cast<InputLengthHandler *>(m_bodyHandler.get())->GetRes();
+
+						begin = m_body.find("; filename=\"");
+
+						end = m_body.find("\r\n", begin);
+
+						filename = m_body.substr(begin + sizeof("; filename="), end - begin - sizeof("; filename=") - 1);
+
+						filename = m_vServer.locations.find(m_location)->second.root + "/" + filename;
+
+						begin = m_body.find("\r\n\r\n", end) + 4;
+						end = m_body.find("--" + m_reqHeader->get_req_headers().boundary, begin);
+
+						std::fstream file(filename.c_str(), std::ios::out);
+						for (size_t i = begin; i < end; ++i) {
+							file.put(m_body[i]);
+						}
+						file.close();
+					}
                     if (hdrs.is_cgi)
+					{
+						if (access(m_file.c_str(), X_OK) != 0)
+							throw Forbidden;
                         m_procStatus = PrepareCgi;
+					}
                     else
                         m_procStatus = WriteRequest;
                 }
             }
             else
-                return MethodNA;
+                throw MethodNA;
         }
 		else if (hdrs.method == "GET")
         {
             if (m_vServer.locations.find(m_location)->second.allow_get)
             {
                 if (hdrs.is_cgi)
-                    m_procStatus = PrepareCgi;
+				{
+					if (access(m_file.c_str(), X_OK) != 0)
+						throw Forbidden;
+					m_procStatus = PrepareCgi;
+				}
                 else
                     m_procStatus = WriteRequest;
             }
             else
-                return MethodNA;
+                throw MethodNA;
         }
         else if (hdrs.method == "DELETE")
-            if (m_vServer.locations.find(m_location)->second.allow_del)
-            {
-
-            }
-            else
-                return MethodNA;
+		{
+			if (m_vServer.locations.find(m_location)->second.allow_del)
+			{
+				if (!m_is_autoindex)
+				{
+					if (remove(m_file.c_str()) < 0)
+						throw IntServerErr;
+					m_delete_resp = "HTTP/1.1 200 OK\nContent-Length: 7\r\n\r\nDeleted";
+					m_procStatus = WriteRequest;
+				}
+				else
+					throw Forbidden;
+			}
+			else
+				throw MethodNA;
+		}
     }
-    return NoError;
 }
 
  void SocketHolder::InitBodyHandler()
@@ -584,6 +640,8 @@ Errors SocketHolder::AccumulateRequest()
 
 			 filename = m_body.substr(begin + sizeof("; filename="), end - begin - sizeof("; filename=") - 1);
 
+			 filename = m_vServer.locations.find(m_location)->second.root + "/" + filename;
+
 			 begin = m_body.find("\r\n\r\n", end) + 4;
 			 end = m_body.find("--" + m_reqHeader->get_req_headers().boundary, begin);
 
@@ -637,15 +695,13 @@ void SocketHolder::SetLocation()
 {
 	m_file = m_reqHeader->get_req_headers().path;
 	bool isdir = m_reqHeader->get_req_headers().is_req_folder;
+	bool isCgi = m_reqHeader->get_req_headers().is_cgi;
 
-	std::cout << "m_file:{" << m_file << "}" << std::endl;
-	
 	std::set<std::string>::reverse_iterator it;
 
 	for (it = m_vServer.location_paths.rbegin(); it != m_vServer.location_paths.rend(); ++it)
 	{
-		std::cout << "m_file " << m_file << " | location: " << *it << std::endl;
-		if (m_file.find(*it) != std::string::npos)
+		if ((m_file + "/").find(*it) != std::string::npos)
 		{
 			m_location = *it;
 			break;
@@ -654,21 +710,36 @@ void SocketHolder::SetLocation()
 
 	if (m_location.empty())
         return;
+	if (m_file.size() > m_location.size())
+		m_file = m_file.substr(m_location.size());
+	else
+		m_file.clear();
 
-	if (isdir)
+	if (!isdir)
+	{
+		if (IsDir((m_vServer.locations.find(m_location)->second.root + "/" + m_file).c_str()))
+			throw NotFound;
+	}
+
+	if (isdir && !isCgi)
 	{
         if (m_vServer.locations.find(m_location)->second.autoindex)
         {
+			m_is_autoindex = true;
             m_file = MakeAutoindex();
         }
         else
         {
+			if (m_vServer.locations.find(m_location)->second.index.empty())
+				throw NotFound;
+			if (access((m_vServer.locations.find(m_location)->second.root + "/" + m_file).c_str(), F_OK))
+				throw NotFound;
 		    m_file = m_vServer.locations.find(m_location)->second.root
 			    + "/" + m_vServer.locations.find(m_location)->second.index;
         }
 	}
 	else
-		m_file = m_vServer.locations.find(m_location)->second.root + m_file;
+		m_file = m_vServer.locations.find(m_location)->second.root + "/" + m_file;
 }
 
 void SocketHolder::SetMServerIp(const std::string &m_server_ip)
@@ -697,9 +768,7 @@ void SocketHolder::SetCgi()
 	m_envp[8] = strdup(("PATH_TRANSLATED="
 						+ wd + "/" + m_vServer.locations.find(m_location)->second.root
 						+ hdrs.path_info).c_str());
-	m_envp[9] = strdup(("SCRIPT_FILENAME="
-							+ m_vServer.locations.find(m_location)->second.root
-							+ hdrs.path).c_str());
+	m_envp[9] = strdup(("SCRIPT_FILENAME=" + m_file).c_str());
 	m_envp[10] = strdup(("CONTENT_TYPE=" + hdrs.content_type).c_str());
 	if (hdrs.cont_length != 0)
 		m_envp[11] = strdup(("CONTENT_LENGTH=" + to_string(hdrs.cont_length)).c_str());
@@ -713,7 +782,7 @@ void SocketHolder::SetCgi()
 		m_envp[11] = strdup("CONTENT_LENGTH=");
 	m_envp[12] = NULL;
 
-	m_argv[0] = strdup((m_vServer.locations.find(m_location)->second.root + hdrs.path).c_str());
+	m_argv[0] = strdup((m_file).c_str());
 	m_argv[1] = NULL;
 
     m_procStatus = ProcessCgi;
@@ -805,26 +874,43 @@ void SocketHolder::HandleCgi()
         bzero(buf, BUFFER);
         std::string dirbuf(getcwd(buf, BUFFER));
         dirbuf.append("/");
-        dirbuf.append(m_vServer.locations.find(m_location)->second.root + m_file);
-        if (IsDir(dirbuf.c_str())) {
-            if ((dir = opendir(dirbuf.c_str())) != 0) {
-
-                while((ent = readdir(dir)) != 0) {
-                    slash = "";
-                    std::string tmp (ent->d_name);
-                    if (IsDir((dirbuf + tmp).c_str()))
-                        slash = "/";
-                    if (tmp != ".")
-                        autoIndex += "<tr><td><form method=\"GET\" action=\"\"> <a href=\"" + tmp + slash + "\">" + tmp + "</a></form></td>\n";
+        dirbuf.append(m_vServer.locations.find(m_location)->second.root);
+		if (dirbuf[dirbuf.size() - 1] != '/')
+			dirbuf.append("/");
+		dirbuf.append(m_file);
+		if (dirbuf[dirbuf.size() - 1] != '/')
+			dirbuf.append("/");
+		if (access(dirbuf.c_str(), F_OK) != 0)
+			throw NotFound;
+        if (IsDir(dirbuf.c_str()))
+		{
+			if (access(dirbuf.c_str(), R_OK) != 0)
+				throw Forbidden;
+            if ((dir = opendir(dirbuf.c_str())) != NULL)
+			{
+                while((ent = readdir(dir)) != NULL)
+				{
+					slash = "";
+					std::string tmp(ent->d_name);
+					if (IsDir((dirbuf + tmp).c_str()))
+						slash = "/";
+					if (tmp != ".")
+					{
+                        autoIndex += "<tr><td><form method=\"GET\"action=\"\"> <a href=\"";
+						autoIndex += tmp + slash;
+						autoIndex += "\">" + tmp + "</a></form></td>\n";
+					}
                 }
             }
             else
             {
+				throw NotFound;
                 //404;
             }
             closedir(dir);
         }
-        else {
+        else
+		{
             autoIndex.clear();
             return autoIndex;
         }

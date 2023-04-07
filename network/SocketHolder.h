@@ -66,13 +66,13 @@ public:
 private:
     SocketHolder();
     // void SetNextState();
-    Errors AccumulateRequest();
+    void AccumulateRequest();
     void HandleBody(void);
 	void SetCgi();
 	void HandleCgi();
     std::string MakeAutoindex();
-    bool IsDir(const char* path);
-    std::string MakeErrorHeader(u_short code);
+    static bool IsDir(const char* path);
+    static std::string MakeErrorHeader(u_short code);
     // bool m_req_done = false;
 
     /* whole request as string */
@@ -118,11 +118,16 @@ private:
 	std::string m_body;
 	std::string m_cgi_raw_out;
 
+	std::string m_delete_resp;
+
     std::string m_sh_type;
 
     int m_res;
     Errors m_err;
     bool   m_error_resp;
+
+	bool	m_is_autoindex;
+	bool	m_is_file_transfer;
     /* configs */
     std::vector<CfgCtx>* m_configs;
 };
