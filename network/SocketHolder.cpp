@@ -20,13 +20,12 @@ namespace ft
 
 SocketHolder::SocketHolder(int desc, std::vector<CfgCtx>* ctxs) :
                                         m_file_descriptor(desc),
-                                        m_configs(NULL),
                                         m_hostSockAddrLen(0),
                                         m_error_resp(false),
 										m_is_autoindex(false),
-										m_is_file_transfer(false)
+										m_is_file_transfer(false),
+										m_configs(ctxs)
 {
-    m_configs = ctxs;
     m_procStatus = ReadRequest;
     memset(&m_hostSockAdd, 0, sizeof(m_hostSockAdd));
     m_sh_type = "RW";
@@ -71,10 +70,10 @@ void SocketHolder::setNonBlocking()
 
 SocketHolder::SocketHolder(int domain, int type, int protocol, std::vector<CfgCtx>* ctxs) :
                                                                         m_procStatus(ReadRequest),
-                                                                        m_configs(ctxs),
                                                                         m_error_resp(false),
 																		m_is_autoindex(false),
-																		m_is_file_transfer(false)
+																		m_is_file_transfer(false),
+																		m_configs(ctxs)
 {
     m_sh_type = "Listen";
     m_file_descriptor = ::socket(domain, type,  protocol);
@@ -435,7 +434,7 @@ void SocketHolder::AccumulateRequest()
 {
     char buffer[BUFF_SIZE];
    
-    ssize_t res = recv(m_file_descriptor, buffer, BUFFER_SIZE, 0);
+    ssize_t res = recv(m_file_descriptor, buffer, BUFF_SIZE, 0);
 
     if (res <= 0)
     {

@@ -142,11 +142,6 @@ namespace ft
 //	  	}
     }
 
-    bool HttpReqHeader::isValid(const std::vector<CfgCtx>& configs)
-    {
-        return true;
-    }
-
     int HttpReqHeader::parse_uri(const std::string& uri)
     {
         std::string tmp;

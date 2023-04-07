@@ -69,7 +69,6 @@ namespace ft
         std::string get_location_block(std::string& str);
     public:
         ConfigParser() {};
-        explicit ConfigParser(const std::string& filename);
         ~ConfigParser() {};
         std::vector<CfgCtx> get_config(const std::string& filename);
     };

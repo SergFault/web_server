@@ -61,7 +61,7 @@ namespace ft
             if (cnt <= 0)
                 throw std::runtime_error("OutputChunkedHandler send error");
 
-            if (cnt < m_ss.str().size())
+            if ((size_t)cnt < m_ss.str().size())
                 m_ss.str(m_ss.str().substr(cnt, m_ss.str().size() - cnt));
             else
                 m_ss.str("");
@@ -95,7 +95,7 @@ namespace ft
 							  m_text.size() > BUFF_SIZE ? BUFF_SIZE : m_text.size(), 0);
             if (cnt <= 0)
                 throw std::runtime_error("OutputChunkedHandler send error");
-			if (cnt < m_text.size())
+			if ((size_t)cnt < m_text.size())
 				m_text = m_text.substr(cnt, m_text.size() - cnt);
 			else
 				m_text.clear();
@@ -109,8 +109,8 @@ namespace ft
     InputLengthHandler::InputLengthHandler(int fd, size_t length, const std::string& remain) :
             m_fd(fd),
             m_lengthLeft(length - remain.size()),
-            m_body(remain),
-            m_isDone(m_lengthLeft == 0)
+            m_isDone(m_lengthLeft == 0),
+			m_body(remain)
     {
         std::cout << "<<<<remain" << remain.size() << std::endl;
         std::cout << "<<<<init" << length - remain.size() << std::endl;
@@ -288,8 +288,8 @@ namespace ft
 
     InputCgiPostHandler::InputCgiPostHandler() :    m_isDone(false),
                                                     m_forkIsDone(false),
-                                                    m_pipe_from_isClosed(false),
-                                                    m_pipe_to_isClosed(false)
+                                                    m_pipe_to_isClosed(false),
+													m_pipe_from_isClosed(false)
     {
     }
 

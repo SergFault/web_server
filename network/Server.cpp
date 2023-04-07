@@ -1,5 +1,4 @@
 #include "Server.hpp"
-#include "../server common.hpp"
 
 #include <iostream>
 #include <vector>
@@ -18,11 +17,6 @@ namespace {
 void Server::initialize(){
 
     m_configs = ConfigParser().get_config(m_configsPath);
-
-//    CfgCtx ctx;
-//    ctx.ip = "127.0.0.1";
-//    ctx.port = "8080";
-//    m_configs.push_back(ctx);
 
     for (std::vector<CfgCtx>::iterator it = m_configs.begin(); it != m_configs.end(); it++)
     {
@@ -127,8 +121,7 @@ void Server::Run()
     fd_set readFd;
     fd_set writeFd;
 
-
-    for(int counter = 0; true ; )
+	while(true)
     {
         FD_ZERO(&readFd);
         FD_ZERO(&writeFd);

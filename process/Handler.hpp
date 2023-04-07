@@ -74,7 +74,6 @@ namespace ft
 	{
 	private:
 		int m_fd;
-		char m_buf[BUFF_SIZE];
 		bool m_isDone;
 		std::string m_text;
 		std::stringstream m_ss;
@@ -175,7 +174,6 @@ namespace ft
 		int     m_pipe_from_cgi[2];
 		std::string m_cgi_response;
 		bool    m_isDone;
-		size_t  m_content_length;
 		bool	m_forkIsDone;
 		std::stringstream m_ss;
 		char m_buf[BUFF_SIZE];

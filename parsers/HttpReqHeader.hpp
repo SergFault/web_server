@@ -115,8 +115,6 @@ namespace ft
         HttpReqHeader(const std::string& request);
         ~HttpReqHeader() {};
 
-        bool isValid(const std::vector<CfgCtx>& configs);
-
         int parse_uri(const std::string& uri);
         request_headers get_req_headers();
     };

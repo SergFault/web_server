@@ -61,34 +61,6 @@ namespace ft
         return location;
     }
 
-    ConfigParser::ConfigParser(const std::string& filename)
-    {
-        // std::ifstream conf(filename, std::ios::in);
-        // std::string tmp;
-
-        // std::getline(conf, tmp, '%');
-
-        // conf.close();
-
-        // tmp = clean_comments(tmp);
-
-        // std::string server;
-
-        // while ((server = get_server_block(tmp)) != "")
-        // {
-        //     CfgCtx  new_record;
-            
-        //     std::string location;
-            
-        //     while ((location = get_location_block(server)) != "")
-        //     {
-
-        //     }
-
-        //     m_config.push_back(new_record);
-        // }
-    }
-
     std::vector<CfgCtx> ConfigParser::get_config(const std::string& filename)
     {
         std::ifstream conf(filename.c_str(), std::ios::in);

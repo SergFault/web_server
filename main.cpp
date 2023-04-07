@@ -1,12 +1,5 @@
 #include <iostream>
-#include "network/SocketHolder.h"
 #include "network/Server.hpp"
-#include "parsing/CfgCtx.hpp"
-#include "utils/SharedPtr.hpp"
-
-#define LOCALHOST "127.0.0.1"
-
-// namespace ft{
 
 int main(int argc, char* argv[])
 {
@@ -19,4 +12,3 @@ int main(int argc, char* argv[])
 
     return 0;
 }
-// } //namespace ft
