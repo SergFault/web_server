@@ -23,8 +23,6 @@ private:
     std::vector< Shared_ptr<SocketHolder> > m_rwSockets;
     std::vector<SocketHolder> m_rwESockets;
 
-    // std::vector<VirtualServer> m_vServers;
-
     void initialize();
     ssize_t m_maxSelectFd;
 };

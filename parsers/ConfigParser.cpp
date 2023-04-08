@@ -80,7 +80,7 @@ namespace ft
             v_server.ip = "0.0.0.0";
             v_server.port = "8080";
 
-            std::string err_path("../err_pages/");//debug
+            std::string err_path("err_pages/");//debug
             v_server.error_pages.insert(std::make_pair(400, err_path + "400.html"));
             v_server.error_pages.insert(std::make_pair(403, err_path + "403.html"));
             v_server.error_pages.insert(std::make_pair(404, err_path + "404.html"));

@@ -192,9 +192,6 @@ namespace ft
         }
         else
         {
-//			cnt = recv(m_fd, &buf, 20, 0);
-
-
             if ((pos = search_chunk.find("\r\n")) != std::string::npos)
             {
                 ss << search_chunk.substr(0, pos);
@@ -235,56 +232,6 @@ namespace ft
     {
         return m_isDone;
     }
-
-//    InputCgiPostHandler::InputCgiPostHandler(char** envp, char** argv,
-//                                             const std::string &query, int fd)
-//                                             :  m_isDone(false),
-//											 	m_forkIsDone(false)
-//    {
-//        if (pipe(m_pipe_to_cgi) == -1)
-//            throw IntServerErr;
-//        if (pipe(m_pipe_from_cgi) == -1)
-//        {
-//            close(m_pipe_to_cgi[0]);
-//            close(m_pipe_to_cgi[1]);
-//            throw IntServerErr;
-//        }
-//        m_pid = fork();
-//        if (m_pid == -1)
-//        {
-//            close(m_pipe_to_cgi[0]);
-//            close(m_pipe_to_cgi[1]);
-//            close(m_pipe_from_cgi[0]);
-//            close(m_pipe_from_cgi[1]);
-//            throw IntServerErr;
-//            //throw error 500
-//        }
-//        else if (m_pid == 0)
-//        {
-//            //fork
-//            close(fd);
-//            dup2(m_pipe_to_cgi[0], 0);
-//            close(m_pipe_to_cgi[0]);
-//            close(m_pipe_to_cgi[1]);
-//            dup2(m_pipe_from_cgi[1], 1);
-//            close(m_pipe_from_cgi[0]);
-//            close(m_pipe_from_cgi[1]);
-//
-//			if (execve(argv[0], argv, envp) == -1)
-//			{
-//				//error 502;
-//			}
-//			_exit(EXIT_FAILURE);
-//        }
-//        else if (m_pid > 0) {
-//            //this
-//			std::time(&m_timer);
-//            close(m_pipe_to_cgi[0]);
-//            close(m_pipe_from_cgi[1]);
-//			fcntl(m_pipe_to_cgi[1], F_SETFL, O_NONBLOCK);
-//			fcntl(m_pipe_from_cgi[0], F_SETFL, O_NONBLOCK);
-//        }
-//    }
 
     InputCgiPostHandler::InputCgiPostHandler() :    m_isDone(false),
                                                     m_forkIsDone(false),
@@ -359,7 +306,6 @@ namespace ft
 						close(m_pipe_from_cgi[0]);
 						close(m_pipe_to_cgi[1]);
                         throw GatewayTimeout;
-//						return;
 					}
 				}
 				else
@@ -433,7 +379,6 @@ namespace ft
             close(m_pipe_from_cgi[0]);
             close(m_pipe_from_cgi[1]);
             throw IntServerErr;
-			//throw error 500
 		}
 		else if (m_pid == 0)
 		{
@@ -473,7 +418,6 @@ namespace ft
 						m_isDone = true;
 						close(m_pipe_from_cgi[0]);
                         throw GatewayTimeout;
-//						return;
 					}
 				}
 				else

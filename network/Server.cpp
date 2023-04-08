@@ -11,9 +11,6 @@
 
 namespace ft{
 
-namespace {
-} //namespace
-
 void Server::initialize(){
 
     m_configs = ConfigParser().get_config(m_configsPath);
@@ -22,7 +19,7 @@ void Server::initialize(){
     {
         struct sockaddr_in server_address;
 
-        /* adress famaly */
+        /* adress family */
         server_address.sin_family = AF_INET;
 
         /* string ip4 to binary and fill sockaddr_in */
@@ -33,13 +30,10 @@ void Server::initialize(){
         std::stringstream(it->port) >> port;
         server_address.sin_port = htons(port);
 
-        /* Socket creation */
-        // std::cout << "There" << std::endl;
         Shared_ptr<SocketHolder> socket_ptr;
 
         try
         {
-            // Shared_ptr<SocketHolder> sh_p(new SocketHolder(AF_INET, SOCK_STREAM, 0));
             socket_ptr = Shared_ptr<SocketHolder>(new SocketHolder(AF_INET, SOCK_STREAM, 0, &m_configs));
         }
         catch(const std::exception &ex)
@@ -47,8 +41,6 @@ void Server::initialize(){
             std::cerr << "Socket creation FAILED " << ex.what() << std::endl;
             throw std::exception();
         }
-
-        // std::cout << "There2" << std::endl;
 
         try
         {
@@ -109,11 +101,6 @@ Server::Server(const std::string& confPath): m_configsPath(confPath), m_maxSelec
 
 }
 
-bool done(Shared_ptr<SocketHolder> sh)
-{
-    return (sh->getStatus() == Done);
-}
-
 void Server::Run()
 {
     initialize();
@@ -136,11 +123,10 @@ void Server::Run()
             {
                 int fd = (*it)->accept_int();
                 std::cout << "  socket #" << (*it)->getFd() << "accepting" << std::endl;
-//                Shared_ptr<SocketHolder> sh_h = (*it)->accept();
                 if (fd != -1)
                 {
                     Shared_ptr<SocketHolder> sh_h(new SocketHolder(fd, &m_configs));
-                    // std::cout << "Accepted " << sh_h->getFd() << "Status" << sh_h->getStatus() << std::endl;
+                    std::cout << "Accepted " << sh_h->getFd() << "Status" << sh_h->getStatus() << std::endl;
                     sh_h->setNonBlocking();
 					sh_h->SetMServerIp((*it)->getServerIp());
 					sh_h->SetMServerPort((*it)->getServerPort());
@@ -167,49 +153,16 @@ void Server::Run()
             // std::cout << "RW SOCKET mark NO-READ " << (*it)->getFd() << std::endl;
         }
 
-        /* WRITE RESP */
-//        for (std::vector< Shared_ptr<SocketHolder> >::iterator it = m_rwSockets.begin(); it != m_rwSockets.end(); it++)
-//        {
-//            if (( FD_ISSET( (*it)->getFd(), &writeFd) ) &&  ((*it)->getStatus() != ReadRequest)
-//					&& ((*it)->getStatus() != ReadBody))
-//            {
-//                std::cout << "socket #" << (*it)->getFd() << " SELECT WRITE" << std::endl;
-//                // std::cout << "RW SOCKET mark: YES-WRITE " << (*it)->getFd() << std::endl;
-//
-//                (*it)->ProcessWrite();
-//
-//                // it = m_rwSockets.erase(it);
-//                //do send
-//                // std::cout << "REQ:" << std::endl << request_str << std::endl;
-//
-//            }
-//            // it->sendFromRespHandler();
-//            // std::cout << "RW SOCKET mark: NO-WRITE" << (*it)->getFd() << std::endl;
-//        }
-
-        /* REMOVE DONE FD */
-
-//        std::remove_if(m_rwSockets.begin(), m_rwSockets.end(), &done);
         for (std::vector< Shared_ptr<SocketHolder> >::iterator it = m_rwSockets.begin();
                     it != m_rwSockets.end();)
         {
             if ((*it)->getStatus() == Done)
             {
-                std::cout << "socket #" << (*it)->getFd() << " SELECT DELETE" << std::endl;
-
-                // it++;
-                // std::cout << "ERASE iterator at " << (*it)->getFd() << std::endl;
-
+                std::cout << "socket #" << (*it)->getFd() << " deleted" << std::endl;
                 it = m_rwSockets.erase(it);
-
-                // std::cout << "Now iterator at " << (*it)->getFd() << std::endl;
-                // std::cout << "REQ:" << std::endl << request_str << std::endl;
             }
             else
-            {
                 it++;
-            }
-            // it->sendFromRespHandler();
         }
     }
 }

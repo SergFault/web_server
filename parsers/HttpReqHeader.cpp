@@ -41,8 +41,6 @@ namespace ft
         m_rel_path(false),
 		m_cgi(false)
     {
-        std::cout << string << std::endl;//debug
-
         std::istringstream ist(string); 
         std::string line;
 
@@ -50,14 +48,8 @@ namespace ft
         std::istringstream iline(line);
 
         std::getline(iline, m_method, ' ');
-        std::cout << "[" << m_method << "]" << std::endl; //debug;
-        
         std::getline(iline, m_uri, ' ');
-        std::cout << "[" << m_uri << "]" << std::endl; //debug;
-        
         std::getline(iline, m_version, '\r');
-        std::cout << "[" << m_version << "]" << std::endl; //debug;
-
         size_t  headers_begin = string.find('\n') + 1;
         
         std::string headers = string.substr(headers_begin, string.size() - headers_begin);
@@ -67,36 +59,26 @@ namespace ft
         while (std::getline(iline2, line))
         {
             std::istringstream ihead(line);
-
-            // std::cout << "line: [" << line << "]" << std::endl; //debug;
-
             std::getline(ihead, line, ':');
-
             to_lower(line);
-
-            // std::cout << "{" << line << "}" << std::endl; //debug
 
             if (line == "host")
             {
                 std::getline(ihead, m_host, ':');
                 m_host = trim_spaces(m_host);
-                // std::cout << "host: [" << m_host << "]" << std::endl; //debug;
                 std::getline(ihead, m_port);
                 m_port = trim_spaces(m_port);
-                // std::cout << "port: [" << m_port << "]" << std::endl; //debug
             }
             else if (line == "content-length")
             {
                 std::getline(ihead, m_content_length, ':');
                 m_content_length = trim_spaces(m_content_length);
                 m_chunked = false;
-                // std::cout << "content-length: [" << m_content_length << "]" << std::endl; //debug
             }
             else if (line == "content-type")
             {
 				size_t bound;
 				std::getline(ihead, m_content_type, ':');
-				//m_content_type = trim_spaces(m_content_type);
 				if ((bound = m_content_type.find("; boundary=")) != std::string::npos)
 				{
 					m_boundary = m_content_type.substr(bound + sizeof("; boundary="));
@@ -116,8 +98,6 @@ namespace ft
             }
         }
 
-        // std::cout << "[" << headers << "]" << std::endl; //debug;
-
         parse_uri(m_uri);
 
 	size_t cgi;
@@ -134,12 +114,6 @@ namespace ft
 			std::cout << "path:" << m_st_uri.path << std::endl;
 			std::cout << "path_info:" << m_st_uri.path_info << std::endl;
 		}
-//	  	if (m_st_uri.path.size() >= 4)
-//	  	{
-//			std::string	fr = m_st_uri.path.substr(m_st_uri.path.size() - 4, 4);
-//			if (fr == ".cgi")
-//			  	m_cgi = true;
-//	  	}
     }
 
     int HttpReqHeader::parse_uri(const std::string& uri)
@@ -177,12 +151,6 @@ namespace ft
         istr2 >> m_st_uri.query;
         std::cout << "query:[" << m_st_uri.query << "]" << std::endl;
 
-//        while (std::getline(istr2, key, '='))
-//        {
-//            std::getline(istr2, value, '&');
-//            m_st_uri.query.insert(std::make_pair(key, value));
-//        }
-
         std::istringstream istr3(tmp);
 
         if (abs_link)
@@ -213,13 +181,6 @@ namespace ft
 
         if (m_st_uri.port != "")
             m_port = m_st_uri.port;
-        // std::cout << "scheme: [" << m_st_uri.scheme << "]" << std::endl; //debug
-        std::cout << "hostname: [" << m_host << "]" << std::endl; //debug
-        std::cout << "port: [" << m_port << "]" << std::endl; //debug
-        // std::cout << "path: [" << m_st_uri.path << "]" << std::endl; //debug
-        // for (auto it = m_st_uri.query.begin(); it != m_st_uri.query.end(); it++)
-        //     std::cout << "query: [" << it->first << ":" << it->second << "]" << std::endl; //debug
-        // std::cout << "fragment: [" << m_st_uri.fragment << "]" << std::endl; //debug
         
         return 0;
     }
@@ -251,24 +212,3 @@ namespace ft
         return res;
     }
 }
-
-// int main()
-// {
-//     std::string str = "POST / HTTP/1.1\r\nHost: 127.0.0.1:8080\r\nContent-Length: 66\r\nContent-Type: multipart/form-data";
-
-//     ft::HttpReqHeader req(str);
-
-//     ft::request_headers res = req.get_req_headers();
-
-//     std::cout << std::endl;
-
-//     std::cout << res.st_uri.scheme << res.st_uri.hostname << res.st_uri.port
-//         << res.st_uri.path << res.st_uri.fragment << std::endl;
-
-//     std::cout << res.st_uri.path << std::endl;
-//     std::cout << res.method << std::endl;
-//     std::cout << res.host << std::endl;
-//     std::cout << res.port << std::endl;
-//     std::cout << res.cont_length << std::endl;
-//     std::cout << res.content_type << std::endl;
-//     std::cout << res.keep_alive << std::endl;cont_length
