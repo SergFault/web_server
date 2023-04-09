@@ -664,8 +664,8 @@ void SocketHolder::SetVServer()
 	std::vector<CfgCtx> match;
 	std::string		host;
 
-    if (m_reqHeader.get() != NULL)
-        host = m_reqHeader->get_req_headers().host;
+	if (m_reqHeader.get() != NULL)
+	  host = m_reqHeader->get_req_headers().host;
 
 	std::string	server_ip_port;
 	std::string m_ip_port = m_serverIp + ":" + m_serverPort;
